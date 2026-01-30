@@ -60,7 +60,7 @@ function TechniciansDashboard() {
   if (!currentUser?.isLoggedIn) return null;
 
   return (
-    <div className="px-10">
+    <div className="sm:px-2 px-10">
       {/* Header */}
       <div className="flex justify-between items-center mt-20">
         <div className="flex flex-col">
