@@ -1,79 +1,96 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import LoginContext from "../../contexts/loginContext";
+import { MdEventAvailable } from "react-icons/md";
+import supabase from "../../utils/supabase";
 
 function TechniciansDashboard() {
-  const { logout } = useContext(LoginContext);
+  const [searchTerm, setSearchInput] = useState("");
+  const { currentUser } = useContext(LoginContext);
+  const [results, setResults] = useState(null);
+
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (!searchTerm) return;
+
+      const { data } = await supabase
+        .from("equipments")
+        .select("*")
+        .or(
+          `product_name.ilike.%${searchTerm}%,product_desc.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%,sub_category.ilike.%${searchTerm}%`,
+        );
+
+      setResults(data);
+      console.log(data);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const handleSearchChange = (e) => {
+    setSearchInput(e.target.value);
+  };
   return (
-    <div className=" min-h-screen flex flex-col">
-      <div className="bg-white mt-7  m-4 p-4 rounded-[100px]">
-        <ul className="flex justify-center items-center gap-8 font-light">
-          <li className="bg-black px-4 py-2 cursor-pointer  text-white rounded-[100px]">
-            Dashboard
-          </li>
-          <li>Events</li>
-        </ul>
+    <div className="px-10">
+      {/* for title and user email */}
+      <div className="flex flex-col mt-20">
+        <h1 className="text-5xl font-bold tracking-[-3px]">Hi there,</h1>
+        <p className="font-thin text-2xl tracking-normal ">
+          {currentUser?.user?.email}
+        </p>
       </div>
-      <div className="flex items-center justify-between m-4 p-4">
-        <div>
-          <h1 className="text-5xl font-extrabold tracking-tighter">
-            Hey, Jithin
-          </h1>
-          <p className="mt-2 caret-gray-900">welcome back!</p>
-        </div>
-        <div className="mx-8 ">
-          <p className="text-2xl font-bold">15</p>
-          <p className="italic">Tuesday</p>
-          <p>October</p>
+      {/* for buttons  */}
+      <div>
+        <div className="max-w-fit border-2 border-blue-200 mt-10 p-5 rounded-lg cursor-pointer hover:bg-[#f3f3e9] transition-all duration-200">
+          <p className="font-extrabold text-lg tracking-tight ">
+            Upcoming events
+            <MdEventAvailable size={20} className="inline-block ml-1" />
+          </p>
+          <p className="font-light text-sm text-gray-600">
+            See all the details of upcoming events assigned to you
+          </p>
         </div>
       </div>
-      <button
-        onClick={logout}
-        className="bg-red-500 text-white px-4 py-2 rounded-lg m-4"
-      >
-        logout
-      </button>
+      {/* for search bar */}
+      <div>
+        <input
+          onChange={handleSearchChange}
+          type="text"
+          placeholder="Search equipments..."
+          className="mt-10 w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-100"
+        />
+      </div>
+      {/* main content */}
+      <div className="mt-10">
+        {results && results.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {results.map((item) => (
+              <div
+                key={item.id}
+                className="border border-gray-200 rounded-lg p-4"
+              >
+                <h3 className="font-bold text-lg tracking-tight">
+                  {item.product_name}
+                </h3>
+                <p className="text-gray-500 text-sm ">
+                  Quantity -
+                  <span className="font-semibold text-gray-800 text-lg">
+                    {" "}
+                    {item.product_qty}
+                  </span>
+                </p>
+                <p className="">
+                  {item.category} | {item.sub_category}
+                </p>
+                <p className=" text-gray-700 text-sm">{item.product_desc}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500">No results found.</p>
+        )}
+      </div>
     </div>
   );
 }
 
 export default TechniciansDashboard;
-
-// old code:
-// import { useQuery } from "@tanstack/react-query";
-// import supabase from "../../utils/supabase";
-// import SearchItems from "../../components/SearchItems";
-
-// async function getEquipments() {
-//   const data = await supabase.from("equipments").select("*");
-//   return data.data;
-// }
-
-// function TechniciansDashboard() {
-//   const { data, isLoading } = useQuery({
-//     queryKey: ["equipments"],
-//     queryFn: getEquipments,
-//   });
-//   if (isLoading) {
-//     return <div>Loading...</div>;
-//   }
-//   return (
-//     <div>
-//       <h1>TechniciansDashboard</h1>
-//       <h2>these are the equipments we have</h2>
-//       {data.map((equipment) => (
-//         <div key={equipment.id}>
-//           <p>{equipment.product_name}</p>
-//         </div>
-//       ))}
-//       <div>
-//         <SearchItems />
-//       </div>
-//     </div>
-//   );
-// }
-
-// export default TechniciansDashboard;
-
-// // to able to search equipments by product_name, model_number, serial_number
-// // to able to filter equipments by status (available, in use, under maintenance)
-// // to able to see events

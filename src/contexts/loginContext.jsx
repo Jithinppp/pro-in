@@ -1,6 +1,5 @@
 import { createContext, useEffect, useState } from "react";
 import { checkRole, checkSession, login } from "../utils/supabase";
-import { Await } from "react-router-dom";
 
 const LoginContext = createContext();
 
@@ -16,7 +15,7 @@ export const LoginProvider = ({ children }) => {
     const fetchSessionAndRoleData = async () => {
       // 1 check server session
       const session = await checkSession();
-      console.log(session);
+      // console.log(session);
       // 2 if session exists, get role data
       if (session) {
         const { data } = await checkRole(session.user.email);

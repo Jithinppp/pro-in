@@ -62,6 +62,23 @@ export const checkRole = async (user_email) => {
   }
 };
 
+// search items
+export const searchEquipments = async (query) => {
+  try {
+    const { data, error } = await supabase
+      .from("equipments")
+      .select("*")
+      .ilike("", `%${query}%`);
+    if (error) {
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    console.log("Error searching equipments:", error.message);
+    return null;
+  }
+};
+
 // create user
 // const createUser = async (email, password) => {
 //   const { data, error } = await supabase.auth.signUp({

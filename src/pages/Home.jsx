@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import LoginContext from "../contexts/loginContext";
 import { useNavigate } from "react-router-dom";
-import { logout, roles } from "../utils/supabase";
+import { roles } from "../utils/supabase";
 
 function Home() {
   // states and contexts
@@ -12,9 +12,10 @@ function Home() {
   // others
   const navigate = useNavigate();
 
-  // effects
+  // check login and redirect based on role
   useEffect(() => {
     if (currentUser.isLoggedIn) {
+      console.log("routing to", currentUser.roleData);
       navigate(`/${roles[currentUser.roleData]}`);
     }
     // console.log(currentUser);
@@ -42,11 +43,13 @@ function Home() {
           <input
             onChange={(e) => setEmail(e.target.value)}
             type="email"
+            required
             placeholder="Email"
             className="px-4 w-full mx-0 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <input
             onChange={(e) => setPassword(e.target.value)}
+            required
             type="password"
             placeholder="Password"
             className="px-4 w-full   mx-0 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -55,7 +58,6 @@ function Home() {
           <button className=" px-4 py-2 w-full bg-blue-500 text-white rounded-md hover:bg-blue-600 cursor-pointer">
             Submit
           </button>
-          <button onClick={logout}>logout</button>
         </form>
       </div>
     </div>
