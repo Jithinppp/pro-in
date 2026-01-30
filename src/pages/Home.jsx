@@ -1,63 +1,80 @@
-import { useContext, useEffect, useState } from "react";
-import LoginContext from "../contexts/loginContext";
+import { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import LoginContext from "../contexts/loginContext";
 import { roles } from "../utils/supabase";
 
 function Home() {
-  // states and contexts
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const { currentUser, userLogin } = useContext(LoginContext);
-
-  // others
+  const { currentUser, userLogin, loading } = useContext(LoginContext);
   const navigate = useNavigate();
 
-  // check login and redirect based on role
-  useEffect(() => {
-    if (currentUser.isLoggedIn) {
-      console.log("routing to", currentUser.roleData);
-      navigate(`/${roles[currentUser.roleData]}`);
-    }
-    // console.log(currentUser);
-  }, [currentUser, navigate]);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
 
-  // handlers
-  const handleLogin = (e) => {
+  // Redirect logged-in user based on role
+  useEffect(() => {
+    if (!loading && currentUser?.isLoggedIn && currentUser?.roleData) {
+      navigate(`/${roles[currentUser.roleData]}`, { replace: true });
+    }
+  }, [currentUser, loading, navigate]);
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    userLogin(email, password);
+    setLoginLoading(true);
+    setErrorMessage("");
+
+    const success = await userLogin(email, password);
+    if (!success) setErrorMessage("Invalid email or password.");
+
+    setLoginLoading(false);
   };
+
+  if (loading)
+    return <p className="text-center mt-20">Checking authentication...</p>;
 
   return (
     <div className="h-screen flex justify-center items-center bg-[#fbf8f2]">
-      <div className="flex justify-center items-center flex-col">
+      <div className="flex flex-col justify-center items-center w-full max-w-md p-6">
         <h1 className="text-5xl font-bold tracking-[-3px] text-center">
-          Think, plan, execute
+          Think, Plan, Execute
         </h1>
-        <p className="text-xl mt-4 font-light text-gray-700">
-          manage your projects efficiently
+        <p className="text-xl mt-4 font-light text-gray-700 text-center">
+          Manage your projects efficiently
         </p>
+
         <form
-          className="mt-8 flex space-x-4 flex-col justify-center items-center p-2 gap-4 "
+          className="mt-8 flex flex-col w-full gap-4"
           onSubmit={handleLogin}
         >
           <input
-            onChange={(e) => setEmail(e.target.value)}
             type="email"
-            required
             placeholder="Email"
-            className="px-4 w-full mx-0 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <input
-            onChange={(e) => setPassword(e.target.value)}
-            required
             type="password"
             placeholder="Password"
-            className="px-4 w-full   mx-0 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
-          <button className=" px-4 py-2 w-full bg-blue-500 text-white rounded-md hover:bg-blue-600 cursor-pointer">
-            Submit
+          <button
+            type="submit"
+            disabled={loginLoading}
+            className="px-4 py-2 w-full bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
+          >
+            {loginLoading ? "Logging in..." : "Login"}
           </button>
+
+          {errorMessage && (
+            <p className="text-red-500 text-sm text-center">{errorMessage}</p>
+          )}
         </form>
       </div>
     </div>
@@ -65,13 +82,3 @@ function Home() {
 }
 
 export default Home;
-{
-  /* <div>
-      <h1>Welcome home</h1>
-      <Link to={"project-manager"}>Project manager</Link>
-      <br />
-      <Link to={"technicians"}>Technician</Link>
-      <br />
-      <Link to={"inventory"}>Inventory</Link>
-    </div> */
-}

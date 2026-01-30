@@ -10,43 +10,6 @@ export const roles = {
   inv: "inventory",
 };
 
-// get session
-export const checkSession = async () => {
-  try {
-    const { data } = await supabase.auth.getSession();
-    return data.session;
-  } catch (error) {
-    console.log("Error fetching session:", error.message);
-    return null;
-  }
-};
-
-// login
-export const login = async (email, password) => {
-  try {
-    const { data } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
-    });
-    return data.user;
-  } catch (error) {
-    console.log("Login error:", error.message);
-    return null;
-  }
-};
-
-// logout
-export const logout = async () => {
-  try {
-    await supabase.auth.signOut();
-    console.log("logout success");
-    return true;
-  } catch (error) {
-    console.log("Logout error:", error.message);
-    return null;
-  }
-};
-
 // get roleData
 export const checkRole = async (user_email) => {
   try {
@@ -58,23 +21,6 @@ export const checkRole = async (user_email) => {
     return data;
   } catch (error) {
     console.log("Error checking role:", error.message);
-    return null;
-  }
-};
-
-// search items
-export const searchEquipments = async (query) => {
-  try {
-    const { data, error } = await supabase
-      .from("equipments")
-      .select("*")
-      .ilike("", `%${query}%`);
-    if (error) {
-      throw error;
-    }
-    return data;
-  } catch (error) {
-    console.log("Error searching equipments:", error.message);
     return null;
   }
 };
