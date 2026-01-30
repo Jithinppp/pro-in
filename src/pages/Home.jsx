@@ -1,19 +1,29 @@
-import { useContext, useState } from "react";
-import { Link } from "react-router-dom";
+import { useContext, useEffect, useState } from "react";
 import LoginContext from "../contexts/loginContext";
+import { useNavigate } from "react-router-dom";
+import { logout, roles } from "../utils/supabase";
 
 function Home() {
+  // states and contexts
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const { currentUser, userLogin } = useContext(LoginContext);
 
-  const { login } = useContext(LoginContext);
-  // console.log(login);
+  // others
+  const navigate = useNavigate();
 
-  const submitHandler = (e) => {
+  // effects
+  useEffect(() => {
+    if (currentUser.isLoggedIn) {
+      navigate(`/${roles[currentUser.roleData]}`);
+    }
+    // console.log(currentUser);
+  }, [currentUser, navigate]);
+
+  // handlers
+  const handleLogin = (e) => {
     e.preventDefault();
-    // console.log("Email:", email);
-    // console.log("Password:", password);
-    login(email, password);
+    userLogin(email, password);
   };
 
   return (
@@ -27,7 +37,7 @@ function Home() {
         </p>
         <form
           className="mt-8 flex space-x-4 flex-col justify-center items-center p-2 gap-4 "
-          onSubmit={submitHandler}
+          onSubmit={handleLogin}
         >
           <input
             onChange={(e) => setEmail(e.target.value)}
@@ -45,6 +55,7 @@ function Home() {
           <button className=" px-4 py-2 w-full bg-blue-500 text-white rounded-md hover:bg-blue-600 cursor-pointer">
             Submit
           </button>
+          <button onClick={logout}>logout</button>
         </form>
       </div>
     </div>

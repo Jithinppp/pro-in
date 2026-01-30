@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useContext } from "react";
+import LoginContext from "../../contexts/loginContext";
 
 function TechniciansDashboard() {
+  const { logout } = useContext(LoginContext);
   return (
     <div className=" min-h-screen flex flex-col">
       <div className="bg-white mt-7  m-4 p-4 rounded-[100px]">
@@ -24,6 +26,12 @@ function TechniciansDashboard() {
           <p>October</p>
         </div>
       </div>
+      <button
+        onClick={logout}
+        className="bg-red-500 text-white px-4 py-2 rounded-lg m-4"
+      >
+        logout
+      </button>
     </div>
   );
 }
