@@ -25,18 +25,4 @@ export const checkRole = async (user_email) => {
   }
 };
 
-// create user
-// const createUser = async (email, password) => {
-//   const { data, error } = await supabase.auth.signUp({
-//     email: email,
-//     password: password,
-//   });
-//   if (error) {
-//     console.log("Create user error:", error.message);
-//     return;
-//   }
-//   setCurrentUser({ isLoggedIn: true, user: data.user });
-//   console.log("User created successfully:", data);
-// };
-
 export default supabase;

@@ -32,11 +32,9 @@ function TechniciansDashboard() {
       try {
         const { data, error } = await supabase
           .from("equipments")
-          .select("*")
-          .or(
-            `product_name.ilike.%${searchTerm}%,product_desc.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%,sub_category.ilike.%${searchTerm}%`,
-          );
-
+          .select(`sub_category,category,uuid,id,equipment_items(*)`)
+          .ilike("sub_category", `%${searchTerm}%`);
+        console.log(data);
         if (error) {
           console.error("Search error:", error.message);
           setResults([]);
@@ -53,14 +51,17 @@ function TechniciansDashboard() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const handleSearchChange = (e) => setSearchTerm(e.target.value);
+  const handleSearchChange = (e) => {
+    const trimmedText = e.target.value.trim();
+    setSearchTerm(trimmedText);
+  };
 
   if (loading)
     return <p className="text-center mt-20">Checking authentication...</p>;
   if (!currentUser?.isLoggedIn) return null;
 
   return (
-    <div className="sm:px-2 px-10">
+    <div className="sm:px-10 px-2">
       {/* Header */}
       <div className="flex justify-between items-center mt-20">
         <div className="flex flex-col">
@@ -111,12 +112,12 @@ function TechniciansDashboard() {
                 className="border border-gray-200 rounded-lg p-4"
               >
                 <h3 className="font-bold text-lg tracking-tight">
-                  {item.product_name}
+                  {item.sub_category}
                 </h3>
                 <p className="text-gray-500 text-sm">
                   Quantity -{" "}
                   <span className="font-semibold text-gray-800 text-lg">
-                    {item.product_qty}
+                    {item.equipment_items?.length}
                   </span>
                 </p>
                 <p>
@@ -130,6 +131,7 @@ function TechniciansDashboard() {
           <p className="text-gray-500">No results found.</p>
         )}
       </div>
+      {/* <button onClick={handleNewUser}>create new user</button> */}
     </div>
   );
 }
