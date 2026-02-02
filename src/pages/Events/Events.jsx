@@ -1,6 +1,17 @@
-import React from "react";
+import React, { useContext, useEffect } from "react";
+import LoginContext from "../../contexts/loginContext";
+import { useNavigate } from "react-router-dom";
 
 function Events() {
+  const { currentUser, loading, logout } = useContext(LoginContext);
+  const navigate = useNavigate();
+  // Protect route
+  useEffect(() => {
+    if (!loading && !currentUser?.isLoggedIn) {
+      navigate("/", { replace: true });
+    }
+  }, [currentUser, loading, navigate]);
+
   return <div className="">Events for tech</div>;
 }
 

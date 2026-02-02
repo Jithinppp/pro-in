@@ -1,8 +1,9 @@
 import React, { useContext, useEffect, useState } from "react";
 import { MdEventAvailable } from "react-icons/md";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import LoginContext from "../../contexts/loginContext";
-import supabase from "../../utils/supabase";
+import { searchEquipments } from "../../utils/supabase";
+import Card from "../../components/Card";
 
 function TechniciansDashboard() {
   const { currentUser, loading, logout } = useContext(LoginContext);
@@ -21,26 +22,21 @@ function TechniciansDashboard() {
 
   // Debounced search
   useEffect(() => {
-    if (!searchTerm) {
+    const trimmed = searchTerm.trim();
+
+    // ✅ if input is empty → reset EVERYTHING immediately
+    if (trimmed === "") {
       setResults([]);
+      setSearchLoading(false);
       return;
     }
-
     setSearchLoading(true);
 
     const timer = setTimeout(async () => {
       try {
-        const { data, error } = await supabase
-          .from("equipments")
-          .select(`sub_category,category,uuid,id,equipment_items(*)`)
-          .ilike("sub_category", `%${searchTerm}%`);
-        console.log(data);
-        if (error) {
-          console.error("Search error:", error.message);
-          setResults([]);
-        } else {
-          setResults(data || []);
-        }
+        const data = await searchEquipments(searchTerm);
+        // console.log(data);
+        setResults(data);
       } catch (err) {
         console.error("Unexpected error:", err);
       } finally {
@@ -50,11 +46,6 @@ function TechniciansDashboard() {
 
     return () => clearTimeout(timer);
   }, [searchTerm]);
-
-  const handleSearchChange = (e) => {
-    const trimmedText = e.target.value.trim();
-    setSearchTerm(trimmedText);
-  };
 
   if (loading)
     return <p className="text-center mt-20">Checking authentication...</p>;
@@ -79,7 +70,10 @@ function TechniciansDashboard() {
       </div>
 
       {/* Upcoming events */}
-      <div className="max-w-fit border-2 border-blue-200 mt-10 p-5 rounded-lg cursor-pointer hover:bg-[#f3f3e9] transition-all duration-200">
+      <Link
+        to={"/events"}
+        className="max-w-fit block border-2 border-blue-200 mt-10 p-5 rounded-lg cursor-pointer hover:bg-[#f3f3e9] transition-all duration-200"
+      >
         <p className="font-extrabold text-lg tracking-tight">
           Upcoming events
           <MdEventAvailable size={20} className="inline-block ml-1" />
@@ -87,7 +81,7 @@ function TechniciansDashboard() {
         <p className="font-light text-sm text-gray-600">
           See all the details of upcoming events assigned to you
         </p>
-      </div>
+      </Link>
 
       {/* Search bar */}
       <div className="mt-10">
@@ -95,7 +89,7 @@ function TechniciansDashboard() {
           type="text"
           placeholder="Search equipments..."
           value={searchTerm}
-          onChange={handleSearchChange}
+          onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-100"
         />
       </div>
@@ -107,31 +101,13 @@ function TechniciansDashboard() {
         ) : results.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {results.map((item) => (
-              <div
-                key={item.id}
-                className="border border-gray-200 rounded-lg p-4"
-              >
-                <h3 className="font-bold text-lg tracking-tight">
-                  {item.sub_category}
-                </h3>
-                <p className="text-gray-500 text-sm">
-                  Quantity -{" "}
-                  <span className="font-semibold text-gray-800 text-lg">
-                    {item.equipment_items?.length}
-                  </span>
-                </p>
-                <p>
-                  {item.category} | {item.sub_category}
-                </p>
-                <p className="text-gray-700 text-sm">{item.product_desc}</p>
-              </div>
+              <Card key={item.id} item={item} />
             ))}
           </div>
         ) : (
-          <p className="text-gray-500">No results found.</p>
+          <p className="text-gray-500">No results found</p>
         )}
       </div>
-      {/* <button onClick={handleNewUser}>create new user</button> */}
     </div>
   );
 }

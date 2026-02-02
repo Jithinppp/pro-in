@@ -1,7 +1,6 @@
 import { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import LoginContext from "../contexts/loginContext";
-import { roles } from "../utils/supabase";
 
 function Home() {
   const { currentUser, userLogin, loading } = useContext(LoginContext);
@@ -15,7 +14,7 @@ function Home() {
   // Redirect logged-in user based on role
   useEffect(() => {
     if (!loading && currentUser?.isLoggedIn && currentUser?.roleData) {
-      navigate(`/${roles[currentUser.roleData]}`, { replace: true });
+      navigate(`/${currentUser?.roleData}`, { replace: true });
     }
   }, [currentUser, loading, navigate]);
 
