@@ -1,9 +1,10 @@
 import { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import LoginContext from "../contexts/loginContext";
+import AuthContext from "../../contexts/AuthContext";
+import Loader from "../../components/common/Loader";
 
 function Home() {
-  const { currentUser, userLogin, loading } = useContext(LoginContext);
+  const { currentUser, userLogin, loading } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -29,8 +30,9 @@ function Home() {
     setLoginLoading(false);
   };
 
-  if (loading)
-    return <p className="text-center mt-20">Checking authentication...</p>;
+  if (loading || currentUser?.isLoggedIn) {
+    return <Loader />; // or a full-screen loader
+  }
 
   return (
     <div className="h-screen flex justify-center items-center bg-[#fbf8f2]">
