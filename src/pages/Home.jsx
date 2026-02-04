@@ -36,7 +36,7 @@ function Home() {
     <div className="h-screen flex justify-center items-center bg-[#fbf8f2]">
       <div className="flex flex-col justify-center items-center w-full max-w-md p-6">
         <h1 className="text-5xl font-bold tracking-[-3px] text-center">
-          Think, Plan, Execute
+          Think, Plan, Execute, changed
         </h1>
         <p className="text-xl mt-4 font-light text-gray-700 text-center">
           Manage your projects efficiently
