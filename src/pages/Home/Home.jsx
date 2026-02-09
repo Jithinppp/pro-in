@@ -34,6 +34,8 @@ function Home() {
     return <Loader />; // or a full-screen loader
   }
 
+  console.log(currentUser);
+
   return (
     <div className="h-screen flex justify-center items-center bg-[#fbf8f2]">
       <div className="flex flex-col justify-center items-center w-full max-w-md p-6">

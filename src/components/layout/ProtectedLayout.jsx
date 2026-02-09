@@ -11,14 +11,25 @@ function ProtectedLayout() {
 
   useEffect(() => {
     if (!loading && !currentUser?.isLoggedIn) {
-      navigate("/");
+      navigate("/", { replace: true });
     }
   }, [loading, currentUser, navigate]);
-  return (
-    <>
-      <Outlet />
-    </>
-  );
+
+  // Show nothing while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
+
+  // Don't render protected content if not logged in
+  if (!currentUser?.isLoggedIn) {
+    return null;
+  }
+
+  return <Outlet />;
 }
 
 export default ProtectedLayout;

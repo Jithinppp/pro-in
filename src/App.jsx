@@ -21,7 +21,6 @@ import TechEvent from "./pages/Tech/TechEvent";
 import TechEvents from "./pages/Tech/TechEvents";
 
 import { AuthProvider } from "./contexts/AuthContext";
-import NavbarLayout from "./components/layout/NavbarLayout";
 
 function App() {
   return (
@@ -47,12 +46,10 @@ function App() {
 
           {/* /tech */}
           <Route path="tech">
-            <Route element={<NavbarLayout />}>
-              <Route index element={<TechDashboard />} />
-              <Route path="events" element={<TechEvents />} />
-              <Route path="event" element={<TechEvent />} />
-              <Route path="equipment" element={<SearchEquipment />} />
-            </Route>
+            <Route index element={<TechDashboard />} />
+            <Route path="events" element={<TechEvents />} />
+            <Route path="event" element={<TechEvent />} />
+            <Route path="equipment" element={<SearchEquipment />} />
           </Route>
         </Route>
       </Routes>

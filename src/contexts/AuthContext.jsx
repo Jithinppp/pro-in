@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
         setCurrentUser({
           isLoggedIn: true,
           user: user,
-          roleData: roleData.user_role,
+          roleData: roleData?.user_role || null,
         });
         return true;
       }
@@ -48,44 +48,53 @@ export const AuthProvider = ({ children }) => {
 
   //effect logics here
   useEffect(() => {
-    // console.log("effect in auth context", currentUser, loading);
-    // Add session check logic here if needed
     let mounted = true;
 
-    const fetchSession = async () => {
-      setLoading(true);
+    const initializeAuth = async (session) => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (session?.user && mounted) {
+        if (session?.user) {
           const { data: roleData } = await checkRole(session.user.email);
-          setCurrentUser({
-            isLoggedIn: true,
-            user: session.user,
-            roleData: roleData.user_role,
-          });
+          if (mounted) {
+            setCurrentUser({
+              isLoggedIn: true,
+              user: session.user,
+              roleData: roleData?.user_role || null,
+            });
+          }
+        } else if (mounted) {
+          setCurrentUser({ isLoggedIn: false, user: null, roleData: null });
         }
       } catch (err) {
-        console.error("Error fetching session:", err);
+        console.error("Error initializing auth:", err);
       } finally {
         if (mounted) setLoading(false);
       }
     };
 
-    fetchSession();
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      initializeAuth(session);
+    });
 
+    // Listen for auth changes (login, logout, token refresh)
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        // Skip INITIAL_SESSION since we handle it above with getSession
+        if (event === "INITIAL_SESSION") return;
+
+        if (event === "SIGNED_OUT") {
+          if (mounted) {
+            setCurrentUser({ isLoggedIn: false, user: null, roleData: null });
+          }
+          return;
+        }
+
+        // For SIGNED_IN, TOKEN_REFRESHED etc., re-fetch role
         if (session?.user && mounted) {
-          const { data: roleData } = await checkRole(session.user.email);
-          setCurrentUser({
-            isLoggedIn: true,
-            user: session.user,
-            roleData: roleData.user_role,
-          });
-        } else if (mounted) {
-          setCurrentUser({ isLoggedIn: false, user: null, roleData: null });
+          // Use setTimeout to avoid Supabase deadlock with async in listener
+          setTimeout(() => {
+            initializeAuth(session);
+          }, 0);
         }
       },
     );
