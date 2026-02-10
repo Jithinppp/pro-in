@@ -5,7 +5,6 @@ import Loader from "../common/Loader";
 
 function NavbarLayout() {
   const { currentUser, logout, loading } = useContext(AuthContext);
-  console.log(currentUser, loading);
 
   if (loading) {
     return <Loader />;

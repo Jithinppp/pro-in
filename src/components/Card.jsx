@@ -1,21 +1,21 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-function Card({ item }) {
-  console.log(item);
+function Card({ item, basePath = "/equipment" }) {
   return (
-    <Link to={`/equipment`} className="border border-gray-200 rounded-lg p-4">
-      <h3 className="font-bold text-lg tracking-tight">{item.sub_category}</h3>
+    <Link
+      to={`${basePath}/${item.id}`}
+      className="block border border-gray-200 rounded-lg p-4 hover:border-blue-300  transition-all duration-200 cursor-pointer"
+    >
+      <h3 className="font-bold text-lg tracking-tight">{item.brand}</h3>
+      <p className="text-gray-500 text-sm">{item.model}</p>
       <p className="text-gray-500 text-sm">
         Quantity -{" "}
         <span className="font-semibold text-gray-800 text-lg">
-          {item.equipment_items?.length}
+          {item.quantity}
         </span>
       </p>
-      <p>
-        {item.category} | {item.sub_category}
-      </p>
-      <p className="text-gray-700 text-sm">{item.product_desc}</p>
+      <p className="text-gray-600 text-sm">{item.category?.name}</p>
     </Link>
   );
 }

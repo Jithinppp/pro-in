@@ -19,6 +19,7 @@ import TechDashboard from "./pages/Tech/TechDashboard";
 import SearchEquipment from "./pages/Tech/SearchEquipment";
 import TechEvent from "./pages/Tech/TechEvent";
 import TechEvents from "./pages/Tech/TechEvents";
+import NotFound from "./pages/NotFound";
 
 import { AuthProvider } from "./contexts/AuthContext";
 import { EquipmentProvider } from "./contexts/EquipmentContext";
@@ -54,10 +55,14 @@ function App() {
             <Route path="tech">
               <Route index element={<TechDashboard />} />
               <Route path="events" element={<TechEvents />} />
-              <Route path="event" element={<TechEvent />} />
+              <Route path="event/:id" element={<TechEvent />} />
+              <Route path="equipment/:id" element={<SearchEquipment />} />
               <Route path="equipment" element={<SearchEquipment />} />
             </Route>
           </Route>
+
+          {/* 404 - Catch all unmatched routes */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </EquipmentProvider>
     </AuthProvider>

@@ -1,13 +1,17 @@
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthContext from "../../contexts/AuthContext";
 import { useEquipment } from "../../contexts/EquipmentContext";
 import Card from "../../components/Card";
+import { fetchEvents } from "../../utils/supabase";
 
 function TechDashboard() {
   const { currentUser, loading: authLoading, logout } = useContext(AuthContext);
   const navigate = useNavigate();
-  const { searchTerm, setSearchTerm, results, loading, search } = useEquipment();
+  const { searchTerm, setSearchTerm, results, loading, search } =
+    useEquipment();
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
 
   const logoutHandler = async () => {
     await logout();
@@ -24,16 +28,31 @@ function TechDashboard() {
     {
       label: "Search Equipment",
       icon: "🔍",
-      path: "/tech/equipment",
       color: "bg-blue-600 hover:bg-blue-700 text-white",
     },
   ];
 
-  const upcomingEvents = [
-    { name: "Tech Conf", date: "Mar 15", status: "Assigned" },
-    { name: "Product Demo", date: "Mar 18", status: "Pending" },
-    { name: "Workshop", date: "Mar 22", status: "Confirmed" },
-  ];
+  // Fetch upcoming events
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        setEventsLoading(true);
+        const today = new Date().toISOString().split("T")[0];
+        const data = await fetchEvents(5);
+        // Filter to upcoming events (from today onwards) and take up to 5
+        const filtered = data
+          ?.filter((event) => event.event_start_date >= today)
+          .slice(0, 5);
+        setUpcomingEvents(filtered || []);
+      } catch (err) {
+        console.error("Failed to load events:", err);
+      } finally {
+        setEventsLoading(false);
+      }
+    };
+
+    loadEvents();
+  }, []);
 
   // Debounced search
   useEffect(() => {
@@ -43,6 +62,14 @@ function TechDashboard() {
 
     return () => clearTimeout(timer);
   }, [searchTerm, search]);
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "—";
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  };
 
   if (authLoading) {
     return (
@@ -88,21 +115,36 @@ function TechDashboard() {
               <span className="text-xs font-medium">{action.label}</span>
             </button>
           ))}
-          {upcomingEvents.map((event, index) => (
-            <button
-              key={`event-${index}`}
-              onClick={() => navigate("/tech/events")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-150"
-            >
-              <span className="text-xs font-medium text-gray-700">{event.name}</span>
-              <span className="text-xs text-gray-500">{event.date}</span>
-            </button>
-          ))}
+          {eventsLoading ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5">
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400"></div>
+              <span className="text-xs text-gray-500">Loading events...</span>
+            </div>
+          ) : upcomingEvents.length > 0 ? (
+            upcomingEvents.map((event) => (
+              <button
+                key={event.id}
+                onClick={() => navigate(`/tech/event/${event.id}`)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-150"
+              >
+                <span className="text-xs font-medium text-gray-700">
+                  {event.event_name}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {formatDate(event.event_start_date)}
+                </span>
+              </button>
+            ))
+          ) : (
+            <span className="text-xs text-gray-500">No upcoming events</span>
+          )}
           <button
             onClick={() => navigate("/tech/events")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors duration-150"
           >
-            <span className="text-xs font-medium text-gray-600">See All Events</span>
+            <span className="text-xs font-medium text-gray-600">
+              See All Events
+            </span>
           </button>
         </div>
 
@@ -143,7 +185,7 @@ function TechDashboard() {
             ) : results.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {results.map((item) => (
-                  <Card key={item.id} item={item} />
+                  <Card key={item.id} item={item} basePath="/tech/equipment" />
                 ))}
               </div>
             ) : searchTerm.trim() ? (

@@ -12,10 +12,19 @@ function Home() {
   const [errorMessage, setErrorMessage] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
 
+  // Map roles to their route paths
+  const roleToPath = {
+    pm: "/project-manager",
+    tech: "/tech",
+    inv: "/inventory",
+  };
+
   // Redirect logged-in user based on role
   useEffect(() => {
     if (!loading && currentUser?.isLoggedIn && currentUser?.roleData) {
-      navigate(`/${currentUser?.roleData}`, { replace: true });
+      const path =
+        roleToPath[currentUser.roleData] || `/${currentUser.roleData}`;
+      navigate(path, { replace: true });
     }
   }, [currentUser, loading, navigate]);
 
@@ -34,10 +43,8 @@ function Home() {
     return <Loader />; // or a full-screen loader
   }
 
-  console.log(currentUser);
-
   return (
-    <div className="h-screen flex justify-center items-center bg-[#fbf8f2]">
+    <div className="h-screen flex justify-center items-center ">
       <div className="flex flex-col justify-center items-center w-full max-w-md p-6">
         <h1 className="text-5xl font-bold tracking-[-3px] text-center">
           Think, Plan, Execute

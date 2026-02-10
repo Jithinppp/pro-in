@@ -1,66 +1,64 @@
 import { createContext, useContext, useState, useCallback } from "react";
-import { searchEquipments } from "../utils/supabase";
+import supabase from "../utils/supabase";
 
 const EquipmentContext = createContext();
 
 export const useEquipment = () => {
-    const context = useContext(EquipmentContext);
-    if (!context) {
-        throw new Error("useEquipment must be used within an EquipmentProvider");
-    }
-    return context;
+  const context = useContext(EquipmentContext);
+  if (!context) {
+    throw new Error("useEquipment must be used within an EquipmentProvider");
+  }
+  return context;
 };
 
 export const EquipmentProvider = ({ children }) => {
-    const [searchTerm, setSearchTerm] = useState("");
-    const [results, setResults] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-    const search = useCallback(async (term) => {
-        const trimmed = term.trim();
+  const search = useCallback(async (term) => {
+    setLoading(true);
+    setError(null);
 
-        if (trimmed === "") {
-            setResults([]);
-            setLoading(false);
-            return;
-        }
-
-        setLoading(true);
-        setError(null);
-
-        try {
-            const data = await searchEquipments(term);
-            setResults(data || []);
-        } catch (err) {
-            setError(err.message);
-            console.error("Error searching equipments:", err);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    const clearSearch = useCallback(() => {
-        setSearchTerm("");
+    try {
+      if (!term || !term.trim()) {
+        // Clear results when search is empty
         setResults([]);
-        setError(null);
-    }, []);
+      } else {
+        // Search by term
+        const { searchEquipments } = await import("../utils/supabase");
+        const data = await searchEquipments(term);
+        setResults(data || []);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    const value = {
-        searchTerm,
-        setSearchTerm,
-        results,
-        loading,
-        error,
-        search,
-        clearSearch,
-    };
+  const clearSearch = useCallback(() => {
+    setSearchTerm("");
+    setResults([]);
+    setError(null);
+  }, []);
 
-    return (
-        <EquipmentContext.Provider value={value}>
-            {children}
-        </EquipmentContext.Provider>
-    );
+  const value = {
+    searchTerm,
+    setSearchTerm,
+    results,
+    loading,
+    error,
+    search,
+    clearSearch,
+  };
+
+  return (
+    <EquipmentContext.Provider value={value}>
+      {children}
+    </EquipmentContext.Provider>
+  );
 };
 
 export default EquipmentContext;
