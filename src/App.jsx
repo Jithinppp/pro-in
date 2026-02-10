@@ -12,6 +12,7 @@ import AddEquipment from "./pages/Inventory/AddEquipment";
 import PMDashboard from "./pages/ProjectManager/PMDashboard";
 import CreateEvent from "./pages/ProjectManager/CreateEvent";
 import EquipmentList from "./pages/ProjectManager/EquipmentList";
+import Equipment from "./pages/ProjectManager/Equipment";
 import PMEvents from "./pages/ProjectManager/PMEvents";
 import Reports from "./pages/ProjectManager/Reports";
 
@@ -45,6 +46,7 @@ function App() {
               <Route index element={<PMDashboard />} />
               <Route path="create" element={<CreateEvent />} />
               <Route path="equipments" element={<EquipmentList />} />
+              <Route path="equipment/:id" element={<Equipment />} />
               <Route path="events" element={<PMEvents />} />
               <Route path="reports" element={<Reports />} />
             </Route>

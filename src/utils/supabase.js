@@ -51,6 +51,29 @@ export const searchEquipments = async (searchTerm) => {
   return transformed;
 };
 
+// fetch product by id
+export const fetchProductById = async (productId) => {
+  const { data, error } = await supabase
+    .from("products")
+    .select(
+      `
+      id,
+      brand,
+      model,
+      category:category_id (id, name),
+      items:items (id, status)
+    `,
+    )
+    .eq("id", productId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+};
+
 // create event
 export const createEvent = async (eventData) => {
   const { data, error } = await supabase

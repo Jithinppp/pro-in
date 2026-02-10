@@ -103,7 +103,11 @@ function EquipmentList() {
             ) : results.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {results.map((item) => (
-                  <Card key={item.id} item={item} />
+                  <Card
+                    key={item.id}
+                    item={item}
+                    basePath="/project-manager/equipment"
+                  />
                 ))}
               </div>
             ) : searchTerm.trim() ? (
