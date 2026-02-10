@@ -1,9 +1,10 @@
 import { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import LoginContext from "../contexts/loginContext";
+import AuthContext from "../../contexts/AuthContext";
+import Loader from "../../components/common/Loader";
 
 function Home() {
-  const { currentUser, userLogin, loading } = useContext(LoginContext);
+  const { currentUser, userLogin, loading } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -29,14 +30,17 @@ function Home() {
     setLoginLoading(false);
   };
 
-  if (loading)
-    return <p className="text-center mt-20">Checking authentication...</p>;
+  if (loading || currentUser?.isLoggedIn) {
+    return <Loader />; // or a full-screen loader
+  }
+
+  console.log(currentUser);
 
   return (
     <div className="h-screen flex justify-center items-center bg-[#fbf8f2]">
       <div className="flex flex-col justify-center items-center w-full max-w-md p-6">
         <h1 className="text-5xl font-bold tracking-[-3px] text-center">
-          Think, Plan, Execute, changed
+          Think, Plan, Execute
         </h1>
         <p className="text-xl mt-4 font-light text-gray-700 text-center">
           Manage your projects efficiently

@@ -1,28 +1,66 @@
-import Home from "./pages/Home";
-import Inventory from "./pages//inventory-manager/Inventory";
-import Technicians from "./pages/technician/TechniciansDashboard";
-import ProjectManager from "./pages/project-manager/project-manager";
-import Events from "./pages/Events/Events";
-import { Route, Routes } from "react-router-dom";
+// packs
+import { Outlet, Route, Routes } from "react-router-dom";
 
-import { LoginProvider } from "./contexts/loginContext";
-import Equipment from "./pages/Equipment/Equipment";
+// pages
+import Home from "./pages/Home/Home";
+import ProtectedLayout from "./components/layout/ProtectedLayout";
 
-// import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-// const queryClient = new QueryClient();
+import InventoryDashboard from "./pages/Inventory/InventoryDashboard";
+import EditEquipment from "./pages/Inventory/EditEquipment";
+import AddEquipment from "./pages/Inventory/AddEquipment";
+
+import PMDashboard from "./pages/ProjectManager/PMDashboard";
+import CreateEvent from "./pages/ProjectManager/CreateEvent";
+import EquipmentList from "./pages/ProjectManager/EquipmentList";
+import PMEvents from "./pages/ProjectManager/PMEvents";
+import Reports from "./pages/ProjectManager/Reports";
+
+import TechDashboard from "./pages/Tech/TechDashboard";
+import SearchEquipment from "./pages/Tech/SearchEquipment";
+import TechEvent from "./pages/Tech/TechEvent";
+import TechEvents from "./pages/Tech/TechEvents";
+
+import { AuthProvider } from "./contexts/AuthContext";
+import { EquipmentProvider } from "./contexts/EquipmentContext";
 
 function App() {
   return (
-    <LoginProvider>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/pm" element={<ProjectManager />} />
-        <Route path="/inv" element={<Inventory />} />
-        <Route path="/tech" element={<Technicians />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/equipment/:id" element={<Equipment />} />
-      </Routes>
-    </LoginProvider>
+    <AuthProvider>
+      <EquipmentProvider>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          {/* /inventory - only accessible by "inv" role */}
+          <Route element={<ProtectedLayout allowedRoles={["inv"]} />}>
+            <Route path="inventory">
+              <Route index element={<InventoryDashboard />} />
+              <Route path="add" element={<AddEquipment />} />
+              <Route path="edit" element={<EditEquipment />} />
+            </Route>
+          </Route>
+
+          {/* /project-manager - only accessible by "pm" role */}
+          <Route element={<ProtectedLayout allowedRoles={["pm"]} />}>
+            <Route path="project-manager">
+              <Route index element={<PMDashboard />} />
+              <Route path="create" element={<CreateEvent />} />
+              <Route path="equipments" element={<EquipmentList />} />
+              <Route path="events" element={<PMEvents />} />
+              <Route path="reports" element={<Reports />} />
+            </Route>
+          </Route>
+
+          {/* /tech - only accessible by "tech" role */}
+          <Route element={<ProtectedLayout allowedRoles={["tech"]} />}>
+            <Route path="tech">
+              <Route index element={<TechDashboard />} />
+              <Route path="events" element={<TechEvents />} />
+              <Route path="event" element={<TechEvent />} />
+              <Route path="equipment" element={<SearchEquipment />} />
+            </Route>
+          </Route>
+        </Routes>
+      </EquipmentProvider>
+    </AuthProvider>
   );
 }
 
