@@ -132,6 +132,7 @@ export const fetchItemById = async (itemId) => {
 
   return data?.[0] || null;
 };
+
 export const fetchEventById = async (eventId) => {
   const { data, error } = await supabase
     .from("events")
@@ -144,6 +145,7 @@ export const fetchEventById = async (eventId) => {
 
   return data?.[0] || null;
 };
+
 export const fetchEventsCount = async () => {
   const { count, error } = await supabase
     .from("events")
@@ -168,6 +170,199 @@ export const fetchAvailableEquipmentCount = async () => {
   }
 
   return count || 0;
+};
+
+// fetch total equipment count
+export const fetchTotalEquipmentCount = async () => {
+  const { count, error } = await supabase
+    .from("items")
+    .select("*", { count: "exact", head: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return count || 0;
+};
+
+// fetch in use equipment count (items with in_use status)
+export const fetchInUseEquipmentCount = async () => {
+  const { count, error } = await supabase
+    .from("items")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "in_use");
+
+  if (error) {
+    throw error;
+  }
+
+  return count || 0;
+};
+
+// fetch maintenance equipment count (items with maintenance status)
+export const fetchMaintenanceEquipmentCount = async () => {
+  const { count, error } = await supabase
+    .from("items")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "maintenance");
+
+  if (error) {
+    throw error;
+  }
+
+  return count || 0;
+};
+
+// fetch recent items (last added, limited to 3)
+export const fetchRecentInventoryItems = async (limit = 3) => {
+  const { data, error } = await supabase
+    .from("items")
+    .select(
+      `
+      id,
+      status,
+      created_at,
+      product:product_id (
+        id,
+        brand,
+        model,
+        category:category_id (id, name)
+      )
+    `,
+    )
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
+};
+
+// fetch all categories
+export const fetchCategories = async () => {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("*")
+    .order("name");
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
+};
+
+// fetch category by id
+export const fetchCategoryById = async (categoryId) => {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("*")
+    .eq("id", categoryId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+};
+
+// fetch products by category
+export const fetchProductsByCategory = async (categoryId) => {
+  const { data, error } = await supabase
+    .from("products")
+    .select(
+      `
+      id,
+      brand,
+      brand_code,
+      model,
+      description
+    `
+    )
+    .eq("category_id", categoryId)
+    .order("brand");
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
+};
+
+// generate next asset code based on product
+export const generateAssetCode = async (productId) => {
+  // Get the product with category info
+  const { data: product, error: productError } = await supabase
+    .from("products")
+    .select(
+      `
+      id,
+      brand_code,
+      category:category_id (id, code)
+    `
+    )
+    .eq("id", productId)
+    .single();
+
+  if (productError) {
+    throw productError;
+  }
+
+  if (!product || !product.category?.code || !product.brand_code) {
+    throw new Error("Product, category code, or brand code not found");
+  }
+
+  // Get all existing items to count those with matching prefix
+  const { data: allItems, error: itemsError } = await supabase
+    .from("items")
+    .select("asset_code");
+
+  if (itemsError) {
+    throw itemsError;
+  }
+
+  // Count items with asset code starting with this category-brand prefix
+  const prefix = `${product.category.code}-${product.brand_code.toUpperCase()}-`;
+  const countForCategory = allItems?.filter(item =>
+    item.asset_code && item.asset_code.startsWith(prefix)
+  ).length || 0;
+
+  // Generate next sequence number
+  const nextNumber = countForCategory + 1;
+  const paddedNumber = String(nextNumber).padStart(3, '0');
+
+  return `${product.category.code}-${product.brand_code.toUpperCase()}-${paddedNumber}`;
+};
+
+// create a new product
+export const createProduct = async (productData) => {
+  const { data, error } = await supabase
+    .from("products")
+    .insert([productData])
+    .select();
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.[0] || null;
+};
+
+// create a new item
+export const createItem = async (itemData) => {
+  const { data, error } = await supabase
+    .from("items")
+    .insert([itemData])
+    .select();
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.[0] || null;
 };
 
 // update event

@@ -1,42 +1,76 @@
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthContext from "../../contexts/AuthContext";
+import {
+  fetchTotalEquipmentCount,
+  fetchAvailableEquipmentCount,
+  fetchInUseEquipmentCount,
+  fetchMaintenanceEquipmentCount,
+  fetchRecentInventoryItems,
+} from "../../utils/supabase";
 
 function InventoryDashboard() {
   const { currentUser, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  const [stats, setStats] = useState([
+    { label: "Total Equipment", value: 0, icon: "🔧", color: "bg-blue-50 text-blue-600" },
+    { label: "Available", value: 0, icon: "✅", color: "bg-green-50 text-green-600" },
+    { label: "In Use", value: 0, icon: "📦", color: "bg-amber-50 text-amber-600" },
+    { label: "Maintenance", value: 0, icon: "⚙️", color: "bg-red-50 text-red-600" },
+  ]);
+
+  const [recentItems, setRecentItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        console.log("Fetching inventory data...");
+        const [total, available, inUse, maintenance, recent] = await Promise.all([
+          fetchTotalEquipmentCount(),
+          fetchAvailableEquipmentCount(),
+          fetchInUseEquipmentCount(),
+          fetchMaintenanceEquipmentCount(),
+          fetchRecentInventoryItems(3),
+        ]);
+
+        console.log("Data fetched:", { total, available, inUse, maintenance, recent });
+
+        setStats([
+          { label: "Total Equipment", value: total, icon: "🔧", color: "bg-blue-50 text-blue-600" },
+          { label: "Available", value: available, icon: "✅", color: "bg-green-50 text-green-600" },
+          { label: "In Use", value: inUse, icon: "📦", color: "bg-amber-50 text-amber-600" },
+          { label: "Maintenance", value: maintenance, icon: "⚙️", color: "bg-red-50 text-red-600" },
+        ]);
+
+        // Transform recent items to match the expected format
+        const transformedRecent = recent.map((item) => ({
+          id: item.id,
+          name: item.product ? `${item.product.brand} ${item.product.model}` : "Unknown",
+          category: item.product?.category?.name || "Unknown",
+          status: item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1).replace(/_/g, " ") : "Unknown",
+          location: "Warehouse",
+        }));
+
+        setRecentItems(transformedRecent);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching inventory data:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const logoutHandler = async () => {
     await logout();
     navigate("/", { replace: true });
   };
-
-  const stats = [
-    {
-      label: "Total Equipment",
-      value: "156",
-      icon: "🔧",
-      color: "bg-blue-50 text-blue-600",
-    },
-    {
-      label: "Available",
-      value: "124",
-      icon: "✅",
-      color: "bg-green-50 text-green-600",
-    },
-    {
-      label: "In Use",
-      value: "28",
-      icon: "📦",
-      color: "bg-amber-50 text-amber-600",
-    },
-    {
-      label: "Maintenance",
-      value: "4",
-      icon: "⚙️",
-      color: "bg-red-50 text-red-600",
-    },
-  ];
 
   const quickActions = [
     {
@@ -48,7 +82,7 @@ function InventoryDashboard() {
     {
       label: "View All",
       icon: "📋",
-      path: "/inventory",
+      path: "/inventory/equipments",
       color: "bg-gray-100 hover:bg-gray-200 text-gray-700",
     },
     {
@@ -59,36 +93,10 @@ function InventoryDashboard() {
     },
   ];
 
-  const recentItems = [
-    {
-      id: 1,
-      name: 'MacBook Pro 16"',
-      category: "Laptop",
-      status: "Available",
-      location: "Tech Room A",
-    },
-    {
-      id: 2,
-      name: "Sony Camera X",
-      category: "Camera",
-      status: "In Use",
-      location: "Event Hall",
-    },
-    {
-      id: 3,
-      name: "Wireless Mic",
-      category: "Audio",
-      status: "Available",
-      location: "Tech Room B",
-    },
-    {
-      id: 4,
-      name: "Projector 4K",
-      category: "Display",
-      status: "Maintenance",
-      location: "Repair Shop",
-    },
-  ];
+  const formatStatus = (status) => {
+    if (!status) return "Unknown";
+    return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -114,6 +122,13 @@ function InventoryDashboard() {
       </div>
 
       <div className="max-w-6xl mx-auto px-8 py-8">
+        {/* Error Display */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            Error loading data: {error}
+          </div>
+        )}
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {stats.map((stat, index) => (
@@ -127,7 +142,7 @@ function InventoryDashboard() {
                     {stat.label}
                   </p>
                   <p className="text-2xl font-semibold text-gray-900 mt-1">
-                    {stat.value}
+                    {loading ? "..." : stat.value}
                   </p>
                 </div>
                 <div
@@ -170,40 +185,53 @@ function InventoryDashboard() {
                   Recent Items
                 </h2>
                 <button
-                  onClick={() => navigate("/inventory")}
+                  onClick={() => navigate("/inventory/equipments")}
                   className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                 >
                   View all
                 </button>
               </div>
-              <div className="space-y-3">
-                {recentItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-150 cursor-pointer"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">
-                        {item.name}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {item.category} • {item.location}
-                      </p>
-                    </div>
-                    <span
-                      className={`px-2 py-0.5 text-xs rounded-full ${
-                        item.status === "Available"
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-gray-400">Loading...</div>
+                </div>
+              ) : error ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-red-400 text-sm">Failed to load data</div>
+                </div>
+              ) : recentItems.length === 0 ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-gray-400 text-sm">No items found</div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {recentItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-150 cursor-pointer"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm">
+                          {item.name}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {item.category} • {item.location}
+                        </p>
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 text-xs rounded-full ${item.status === "Available"
                           ? "bg-green-100 text-green-700"
                           : item.status === "In Use"
                             ? "bg-amber-100 text-amber-700"
                             : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                          }`}
+                      >
+                        {formatStatus(item.status)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

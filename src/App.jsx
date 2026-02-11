@@ -8,6 +8,7 @@ import ProtectedLayout from "./components/layout/ProtectedLayout";
 import InventoryDashboard from "./pages/Inventory/InventoryDashboard";
 import EditEquipment from "./pages/Inventory/EditEquipment";
 import AddEquipment from "./pages/Inventory/AddEquipment";
+import Equipments from "./pages/Inventory/Equipments";
 
 import PMDashboard from "./pages/ProjectManager/PMDashboard";
 import CreateEvent from "./pages/ProjectManager/CreateEvent";
@@ -35,6 +36,8 @@ function App() {
           <Route element={<ProtectedLayout allowedRoles={["inv"]} />}>
             <Route path="inventory">
               <Route index element={<InventoryDashboard />} />
+              <Route path="equipments" element={<Equipments />} />
+              <Route path="equipment/:id" element={<EditEquipment />} />
               <Route path="add" element={<AddEquipment />} />
               <Route path="edit" element={<EditEquipment />} />
             </Route>
