@@ -81,9 +81,12 @@ function Equipments() {
                     </div>
                     <button
                         onClick={() => navigate("/inventory")}
-                        className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-150"
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-150"
                     >
-                        ← Back to Dashboard
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back
                     </button>
                 </div>
             </div>
@@ -120,8 +123,8 @@ function Equipments() {
                         <button
                             onClick={() => setShowFilters(!showFilters)}
                             className={`px-4 py-3 border rounded-lg transition-colors flex items-center gap-2 ${showFilters || selectedCategory
-                                    ? "bg-blue-50 border-blue-200 text-blue-700"
-                                    : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                                ? "bg-blue-50 border-blue-200 text-blue-700"
+                                : "border-gray-200 text-gray-600 hover:bg-gray-50"
                                 }`}
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

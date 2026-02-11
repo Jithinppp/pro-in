@@ -60,9 +60,16 @@ export const fetchProductById = async (productId) => {
       id,
       brand,
       model,
+      brand_code,
+      description,
       category:category_id (id, name),
-      items:items (id, status)
-    `,
+      items:items (
+        id,
+        asset_code,
+        serial_number,
+        status
+      )
+    `
     )
     .eq("id", productId)
     .single();
@@ -72,6 +79,61 @@ export const fetchProductById = async (productId) => {
   }
 
   return data;
+};
+
+// fetch product items with event assignments
+export const fetchProductItemsWithEvents = async (productId) => {
+  // First get all event_items for items of this product
+  const { data: items, error: itemsError } = await supabase
+    .from("items")
+    .select("id, asset_code, serial_number, status, product_id")
+    .eq("product_id", productId);
+
+  if (itemsError) {
+    throw itemsError;
+  }
+
+  if (!items || items.length === 0) {
+    return [];
+  }
+
+  const itemIds = items.map(item => item.id);
+
+  // Get event assignments for these items
+  const { data: eventItems, error: eventError } = await supabase
+    .from("event_items")
+    .select(`
+      id,
+      item_id,
+      event_id,
+      assigned_at,
+      event:events (
+        id,
+        event_name,
+        client_name,
+        event_start_date,
+        event_end_date,
+        venue,
+        event_location
+      )
+    `)
+    .in("item_id", itemIds);
+
+  if (eventError) {
+    throw eventError;
+  }
+
+  // Map event assignments to items
+  const eventItemMap = {};
+  eventItems?.forEach(ei => {
+    eventItemMap[ei.item_id] = ei;
+  });
+
+  // Combine item data with event assignments
+  return items.map(item => ({
+    ...item,
+    event_assignment: eventItemMap[item.id] || null
+  }));
 };
 
 // create event
@@ -110,11 +172,13 @@ export const fetchEvents = async (limit = null) => {
 
 // fetch single item by id
 export const fetchItemById = async (itemId) => {
-  const { data, error } = await supabase
+  // First get the item
+  const { data: item, error: itemError } = await supabase
     .from("items")
-    .select(
-      `
+    .select(`
       id,
+      asset_code,
+      serial_number,
       status,
       product:product_id (
         id,
@@ -122,15 +186,42 @@ export const fetchItemById = async (itemId) => {
         model,
         category:category_id (id, name)
       )
-    `,
-    )
-    .eq("id", itemId);
+    `)
+    .eq("id", itemId)
+    .single();
 
-  if (error) {
-    throw error;
+  if (itemError) {
+    throw itemError;
   }
 
-  return data?.[0] || null;
+  // Then get the event assignment for this item
+  const { data: eventItem, error: eventError } = await supabase
+    .from("event_items")
+    .select(`
+      id,
+      event_id,
+      assigned_at,
+      event:events (
+        id,
+        event_name,
+        client_name,
+        event_start_date,
+        event_end_date,
+        venue,
+        event_location
+      )
+    `)
+    .eq("item_id", itemId)
+    .single();
+
+  if (eventError && eventError.code !== 'PGRST116') {
+    throw eventError;
+  }
+
+  return {
+    ...item,
+    event_assignment: eventItem || null
+  };
 };
 
 export const fetchEventById = async (eventId) => {
@@ -378,6 +469,206 @@ export const updateEvent = async (eventId, eventData) => {
   }
 
   return data;
+};
+
+// delete event
+export const deleteEvent = async (eventId) => {
+  const { error } = await supabase
+    .from("events")
+    .delete()
+    .eq("id", eventId);
+
+  if (error) {
+    throw error;
+  }
+
+  return true;
+};
+
+// fetch event with assigned equipment
+export const fetchEventWithEquipment = async (eventId) => {
+  const { data, error } = await supabase
+    .from("events")
+    .select(
+      `
+      *,
+      assigned_items:event_items (
+        id,
+        item:items (
+          id,
+          asset_code,
+          serial_number,
+          status,
+          product:product_id (
+            id,
+            brand,
+            model,
+            category:category_id (id, name)
+          )
+        )
+      )
+    `
+    )
+    .eq("id", eventId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+};
+
+// assign equipment to event
+export const assignEquipmentToEvent = async (eventId, itemId) => {
+  const { data, error } = await supabase
+    .from("event_items")
+    .insert([{ event_id: eventId, item_id: itemId }])
+    .select();
+
+  if (error) {
+    throw error;
+  }
+
+  // Update item status to "in_use"
+  await supabase
+    .from("items")
+    .update({ status: "in_use" })
+    .eq("id", itemId);
+
+  return data;
+};
+
+// remove equipment from event
+export const removeEquipmentFromEvent = async (assignmentId, itemId) => {
+  const { error } = await supabase
+    .from("event_items")
+    .delete()
+    .eq("id", assignmentId);
+
+  if (error) {
+    throw error;
+  }
+
+  // Update item status back to "available"
+  await supabase
+    .from("items")
+    .update({ status: "available" })
+    .eq("id", itemId);
+
+  return true;
+};
+
+// fetch available equipment (not assigned to any event)
+export const fetchAvailableEquipment = async () => {
+  const { data, error } = await supabase
+    .from("items")
+    .select(
+      `
+      id,
+      asset_code,
+      serial_number,
+      status,
+      product:product_id (
+        id,
+        brand,
+        model,
+        category:category_id (id, name)
+      )
+    `
+    )
+    .eq("status", "available")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
+};
+
+// Create a new report
+export const createReport = async (reportData) => {
+  const { data, error } = await supabase
+    .from("reports")
+    .insert([reportData])
+    .select();
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.[0] || null;
+};
+
+// Fetch all reports
+export const fetchReports = async () => {
+  const { data, error } = await supabase
+    .from("reports")
+    .select(
+      `
+      *,
+      event:events (
+        id,
+        event_name,
+        client_name,
+        event_start_date,
+        event_end_date,
+        venue
+      )
+    `
+    )
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
+};
+
+// Fetch reports by event ID
+export const fetchReportsByEvent = async (eventId) => {
+  const { data, error } = await supabase
+    .from("reports")
+    .select("*")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
+};
+
+// Fetch single report by ID
+export const fetchReportById = async (reportId) => {
+  const { data, error } = await supabase
+    .from("reports")
+    .select("*")
+    .eq("id", reportId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+};
+
+// Delete a report
+export const deleteReport = async (reportId) => {
+  const { error } = await supabase
+    .from("reports")
+    .delete()
+    .eq("id", reportId);
+
+  if (error) {
+    throw error;
+  }
+
+  return true;
 };
 
 export default supabase;

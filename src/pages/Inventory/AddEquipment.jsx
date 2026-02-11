@@ -213,15 +213,20 @@ function AddEquipment() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">Add New Equipment</h1>
+            <p className="text-gray-500 mt-1">Enter all the details for the new equipment</p>
+          </div>
           <button
             onClick={() => navigate("/inventory")}
-            className="text-blue-600 hover:text-blue-700 mb-4 flex items-center gap-2"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-150"
           >
-            ← Back to Dashboard
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
           </button>
-          <h1 className="text-2xl font-semibold text-gray-900">Add New Equipment</h1>
-          <p className="text-gray-500 mt-1">Enter all the details for the new equipment</p>
         </div>
 
         {/* Success Message */}
@@ -506,19 +511,6 @@ function AddEquipment() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Purchase Date
-                </label>
-                <input
-                  type="date"
-                  name="purchase_date"
-                  value={formData.purchase_date}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Purchase Price
                 </label>
                 <input
@@ -533,6 +525,19 @@ function AddEquipment() {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Purchase Date
+                </label>
+                <input
+                  type="date"
+                  name="purchase_date"
+                  value={formData.purchase_date}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Notes
@@ -542,7 +547,7 @@ function AddEquipment() {
                   value={formData.notes}
                   onChange={handleChange}
                   rows={3}
-                  placeholder="Additional notes or comments..."
+                  placeholder="Additional notes about this equipment..."
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 />
               </div>
@@ -550,18 +555,18 @@ function AddEquipment() {
           </div>
 
           {/* Submit Button */}
-          <div className="flex justify-end gap-4">
+          <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={() => navigate("/inventory")}
-              className="px-6 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-6 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-150"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? "Adding..." : "Add Equipment"}
             </button>

@@ -15,7 +15,10 @@ import CreateEvent from "./pages/ProjectManager/CreateEvent";
 import EquipmentList from "./pages/ProjectManager/EquipmentList";
 import Equipment from "./pages/ProjectManager/Equipment";
 import PMEvents from "./pages/ProjectManager/PMEvents";
+import SingleEvent from "./pages/ProjectManager/SingleEvent";
+import AssignEquipments from "./pages/ProjectManager/AssignEquipments";
 import Reports from "./pages/ProjectManager/Reports";
+import SingleReport from "./pages/ProjectManager/SingleReport";
 
 import TechDashboard from "./pages/Tech/TechDashboard";
 import SearchEquipment from "./pages/Tech/SearchEquipment";
@@ -51,7 +54,10 @@ function App() {
               <Route path="equipments" element={<EquipmentList />} />
               <Route path="equipment/:id" element={<Equipment />} />
               <Route path="events" element={<PMEvents />} />
+              <Route path="event/:id" element={<SingleEvent />} />
+              <Route path="events/:eventId/assign" element={<AssignEquipments />} />
               <Route path="reports" element={<Reports />} />
+              <Route path="report/:id" element={<SingleReport />} />
             </Route>
           </Route>
 

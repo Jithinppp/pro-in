@@ -51,9 +51,12 @@ function SearchEquipment() {
             <p className="text-red-600 mb-4">{error}</p>
             <button
               onClick={() => navigate("/tech")}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Back to Dashboard
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
             </button>
           </div>
         </div>
@@ -67,9 +70,12 @@ function SearchEquipment() {
             <p className="text-gray-600 mb-4">Equipment not found</p>
             <button
               onClick={() => navigate("/tech")}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Back to Dashboard
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
             </button>
           </div>
         </div>
@@ -88,14 +94,15 @@ function SearchEquipment() {
               </h1>
               <p className="text-gray-500 mt-1 text-sm">Equipment Details</p>
             </div>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate("/tech")}
-                className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-150"
-              >
-                ← Back
-              </button>
-            </div>
+            <button
+              onClick={() => navigate("/tech")}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-150"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
           </div>
         </div>
 
@@ -121,9 +128,8 @@ function SearchEquipment() {
                   <span className="text-gray-400 text-sm">Status</span>
                 </div>
                 <span
-                  className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${
-                    statusColors[item.status] || "bg-gray-100 text-gray-700"
-                  }`}
+                  className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${statusColors[item.status] || "bg-gray-100 text-gray-700"
+                    }`}
                 >
                   {item.status
                     ? item.status.charAt(0).toUpperCase() + item.status.slice(1)
@@ -171,9 +177,12 @@ function SearchEquipment() {
           </div>
           <button
             onClick={() => navigate("/tech")}
-            className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-150"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-150"
           >
-            ← Back to Dashboard
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
           </button>
         </div>
       </div>

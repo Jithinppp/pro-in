@@ -85,7 +85,7 @@ function CreateEvent() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-8 py-6">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">
               Create Event
@@ -96,14 +96,17 @@ function CreateEvent() {
           </div>
           <button
             onClick={() => navigate("/project-manager")}
-            className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-150"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-150"
           >
-            ← Back
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
           </button>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-8 py-8">
+      <div className="max-w-5xl mx-auto px-8 py-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Error Message */}
           {error && (
@@ -273,6 +276,7 @@ function CreateEvent() {
                 name="setup_date_time"
                 value={formData.setup_date_time}
                 onChange={handleChange}
+                step="60"
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -331,3 +335,4 @@ function CreateEvent() {
 }
 
 export default CreateEvent;
+

@@ -4,7 +4,6 @@ import AuthContext from "../../contexts/AuthContext";
 import {
   fetchEventsCount,
   fetchEvents,
-  fetchAvailableEquipmentCount,
 } from "../../utils/supabase";
 
 function PMDashboard() {
@@ -12,7 +11,6 @@ function PMDashboard() {
   const navigate = useNavigate();
 
   const [eventsCount, setEventsCount] = useState(0);
-  const [availableEquipment, setAvailableEquipment] = useState(0);
   const [recentEvents, setRecentEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,10 +24,6 @@ function PMDashboard() {
       // Load events count
       const totalEvents = await fetchEventsCount();
       setEventsCount(totalEvents);
-
-      // Load available equipment count
-      const available = await fetchAvailableEquipmentCount();
-      setAvailableEquipment(available);
 
       // Load recent 5 events
       const events = await fetchEvents(5);
@@ -108,7 +102,7 @@ function PMDashboard() {
         ) : (
           <>
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
               <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200">
                 <div className="flex items-center justify-between">
                   <div>
@@ -121,22 +115,6 @@ function PMDashboard() {
                   </div>
                   <div className="w-12 h-12 rounded-lg flex items-center justify-center text-xl bg-blue-50 text-blue-600">
                     📅
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      Equipment Available
-                    </p>
-                    <p className="text-2xl font-semibold text-gray-900 mt-1">
-                      {availableEquipment}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg flex items-center justify-center text-xl bg-green-50 text-green-600">
-                    🔧
                   </div>
                 </div>
               </div>
