@@ -1,23 +1,58 @@
-// Button component
-function Button({ children, onClick, variant = "primary", ...props }) {
-    const baseStyle = {
-        padding: "8px 16px",
-        borderRadius: "4px",
-        cursor: "pointer",
+// Reusable Button component
+function Button({
+    children,
+    onClick,
+    variant = "primary",
+    type = "button",
+    disabled = false,
+    className = "",
+    ...props
+}) {
+    const baseStyles = {
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0.5rem 1rem",
+        fontSize: "0.875rem",
+        fontWeight: "500",
+        borderRadius: "0.375rem",
+        cursor: disabled ? "not-allowed" : "pointer",
+        transition: "all 0.2s ease",
         border: "none",
-        fontSize: "14px",
+        outline: "none",
     };
 
     const variants = {
-        primary: { backgroundColor: "#007bff", color: "white" },
-        secondary: { backgroundColor: "#6c757d", color: "white" },
-        outline: { backgroundColor: "transparent", border: "1px solid #007bff", color: "#007bff" },
+        primary: {
+            backgroundColor: "#2563eb",
+            color: "white",
+        },
+        secondary: {
+            backgroundColor: "transparent",
+            color: "#374151",
+            border: "1px solid #d1d5db",
+        },
+    };
+
+    const disabledStyles = {
+        opacity: "0.5",
+        cursor: "not-allowed",
+    };
+
+    const variantStyles = variants[variant] || variants.primary;
+    const finalStyles = {
+        ...baseStyles,
+        ...variantStyles,
+        ...(disabled ? disabledStyles : {}),
     };
 
     return (
         <button
+            type={type}
             onClick={onClick}
-            style={{ ...baseStyle, ...variants[variant] }}
+            disabled={disabled}
+            style={finalStyles}
+            className={className}
             {...props}
         >
             {children}
