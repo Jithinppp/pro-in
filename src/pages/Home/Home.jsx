@@ -1,92 +1,15 @@
-import { useContext, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import AuthContext from "../../contexts/AuthContext";
-import Loader from "../../components/common/Loader";
+import { Link } from "react-router-dom";
 
 function Home() {
-  const { currentUser, userLogin, loading } = useContext(AuthContext);
-  const navigate = useNavigate();
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [loginLoading, setLoginLoading] = useState(false);
-
-  // Map roles to their route paths
-  const roleToPath = {
-    pm: "/project-manager",
-    tech: "/tech",
-    inv: "/inventory",
-  };
-
-  // Redirect logged-in user based on role
-  useEffect(() => {
-    if (!loading && currentUser?.isLoggedIn && currentUser?.roleData) {
-      const path =
-        roleToPath[currentUser.roleData] || `/${currentUser.roleData}`;
-      navigate(path, { replace: true });
-    }
-  }, [currentUser, loading, navigate]);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoginLoading(true);
-    setErrorMessage("");
-
-    const success = await userLogin(email, password);
-    if (!success) setErrorMessage("Invalid email or password.");
-
-    setLoginLoading(false);
-  };
-
-  if (loading || currentUser?.isLoggedIn) {
-    return <Loader />; // or a full-screen loader
-  }
-
   return (
-    <div className="h-screen flex justify-center items-center ">
-      <div className="flex flex-col justify-center items-center w-full max-w-md p-6">
-        <h1 className="text-5xl font-bold tracking-[-3px] text-center">
-          Think, Plan, Execute
-        </h1>
-        <p className="text-xl mt-4 font-light text-gray-700 text-center">
-          Manage your projects efficiently
-        </p>
-
-        <form
-          className="mt-8 flex flex-col w-full gap-4"
-          onSubmit={handleLogin}
-        >
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-
-          <button
-            type="submit"
-            disabled={loginLoading}
-            className="px-4 py-2 w-full bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
-          >
-            {loginLoading ? "Logging in..." : "Login"}
-          </button>
-
-          {errorMessage && (
-            <p className="text-red-500 text-sm text-center">{errorMessage}</p>
-          )}
-        </form>
-      </div>
+    <div style={{ padding: "20px" }}>
+      <h1>Welcome to the App</h1>
+      <p>Select a section:</p>
+      <ul>
+        <li><Link to="/pm">Project Manager</Link></li>
+        <li><Link to="/tech">Tech</Link></li>
+        <li><Link to="/inv">Inventory</Link></li>
+      </ul>
     </div>
   );
 }
