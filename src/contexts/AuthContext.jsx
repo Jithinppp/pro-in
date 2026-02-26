@@ -1,94 +1,90 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { supabase, getUserRole, roleToRoute } from "../lib/supabase";
+import { createContext, useState, useEffect } from "react";
+import { supabase, getUserRole, authLogin, authLogout } from "../lib/supabase";
 
 const AuthContext = createContext(null);
 
+export { AuthContext };
+
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(null);
-    const [role, setRole] = useState(null);
-    const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    // Check for existing session on mount
-    useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) {
-                setUser(session.user);
-                fetchUserRole(session.user.email);
-            }
-            setLoading(false);
-        });
+  // Fetch user role and set it
+  const fetchUserRole = async (email) => {
+    const userRole = await getUserRole(email);
+    setRole(userRole);
+    return userRole;
+  };
 
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            (event, session) => {
-                if (session?.user) {
-                    setUser(session.user);
-                    fetchUserRole(session.user.email);
-                } else {
-                    setUser(null);
-                    setRole(null);
-                }
-                setLoading(false);
-            }
-        );
+  // Check for existing session on mount
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+        fetchUserRole(session.user.email);
+      }
+      setLoading(false);
+    });
 
-        return () => subscription.unsubscribe();
-    }, []);
-
-    const fetchUserRole = useCallback(async (email) => {
-        const userRole = await getUserRole(email);
-        setRole(userRole);
-    }, []);
-
-    const login = async (email, password) => {
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
-
-        if (error) {
-            console.error("Login error:", error.message);
-            return { success: false, error: error.message };
-        }
-
-        // Fetch user role after successful login and wait for it
-        if (data.user) {
-            const userRole = await getUserRole(data.user.email);
-            setRole(userRole);
-            return { success: true, role: userRole };
-        }
-
-        return { success: true };
-    };
-
-    const logout = async () => {
-        await supabase.auth.signOut();
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        fetchUserRole(session.user.email);
+      } else {
         setUser(null);
         setRole(null);
-    };
+      }
+      setLoading(false);
+    });
 
-    const value = {
-        user,
-        role,
-        loading,
-        login,
-        logout,
-        getRedirectRoute: () => role ? roleToRoute[role] : null,
-    };
+    return () => subscription.unsubscribe();
+  }, []);
 
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
-}
+  const login = async (email, password) => {
+    setError(null);
 
-export function useAuth() {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error("useAuth must be used within an AuthProvider");
+    const result = await authLogin(email, password);
+
+    if (!result.success) {
+      console.error("Login error:", result.error);
+      setError(result.error);
+      return { success: false, error: result.error };
     }
-    return context;
+
+    setUser(result.user);
+    setRole(result.role);
+
+    return { success: true, role: result.role };
+  };
+
+  const logout = async () => {
+    setError(null);
+    try {
+      await authLogout();
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      setUser(null);
+      setRole(null);
+    }
+  };
+
+  const value = {
+    user,
+    role,
+    loading,
+    error,
+    login,
+    logout,
+    clearError: () => setError(null),
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export default AuthContext;
