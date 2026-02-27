@@ -1,72 +1,99 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
+import { useForm } from "react-hook-form";
 import Button from "../../components/common/Button";
-import { createEvent } from "../../lib/supabase";
+import { createEvent, fetchProjectManagers, fetchEventTypes } from "../../lib/supabase";
 import { AuthContext } from "../../contexts/AuthContext";
 
 function CreateEvent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [formData, setFormData] = useState({
-    // Basic information
-    job_id: "",
-    event_name: "",
-    description: "",
-    client_name: "",
-    client_type: "",
-    job_status: "",
-    event_type: "",
-    project_manager_id: "",
-
-    // Time and Dates
-    event_date: "",
-    setup_date: "",
-    is_multiple_days: false,
-    additional_dates: [],
-    // Venue details
-    is_multiple_venues: false,
-    venue_name: "",
-    hall_name: "",
-    venue_address: "",
-    pax: "",
-    loading_dock_notes: "",
-    safety_precautions: "",
-    parking_passes: "",
-    security_access: "",
-    additional_venues: [],
-
-    // Contact details
-    contact_name: "",
-    contact_role: "",
-    contact_mobile: "",
-    contact_email: "",
-    is_on_site: false,
-
-    // Attachments
-    file_floor_plan: "",
-    file_run_of_show: "",
-  });
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
+  const [projectManagers, setProjectManagers] = useState([]);
+  const [eventTypes, setEventTypes] = useState([]);
+  console.log(eventTypes)
 
   const { user } = useContext(AuthContext);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      // Basic information
+      job_id: "",
+      event_name: "",
+      description: "",
+      client_name: "",
+      client_type: "",
+      job_status: "",
+      event_type: "",
+      project_manager_id: "",
+
+      // Time and Dates
+      event_date: "",
+      setup_date: "",
+      is_multiple_days: false,
+      additional_dates: [],
+      // Venue details
+      is_multiple_venues: false,
+      venue_name: "",
+      hall_name: "",
+      venue_address: "",
+      pax: "",
+      loading_dock_notes: "",
+      safety_precautions: "",
+      parking_passes: "",
+      security_access: "",
+      additional_venues: [],
+
+      // Contact details
+      contact_name: "",
+      contact_role: "",
+      contact_mobile: "",
+      contact_email: "",
+      is_on_site: false,
+
+      // Attachments
+      file_floor_plan: "",
+      file_run_of_show: "",
+    },
+  });
+
+  // Watch certain fields for conditional rendering
+  const isMultipleDays = watch("is_multiple_days");
+  const isMultipleVenues = watch("is_multiple_venues");
+  const additionalDates = watch("additional_dates");
+  const additionalVenues = watch("additional_venues");
+
+  // Fetch project managers and event types on component mount
+  useEffect(() => {
+    async function loadData() {
+      const [pmResult, etResult] = await Promise.all([
+        fetchProjectManagers(),
+        fetchEventTypes()
+      ]);
+
+      if (pmResult.success) {
+        setProjectManagers(pmResult.managers);
+      }
+      if (etResult.success) {
+        setEventTypes(etResult.eventTypes);
+      }
+    }
+    loadData();
+  }, []);
+
+  const onSubmit = async (data) => {
     setLoading(true);
     setError(null);
 
     try {
-      const result = await createEvent(formData, user.id);
+      const result = await createEvent(data, user.id);
 
       if (result.success) {
         alert("Event created successfully!");
-        // Reset form or navigate
         window.history.back();
       } else {
         setError(result.error || "Failed to create event");
@@ -80,74 +107,66 @@ function CreateEvent() {
   };
 
   const handleAddDate = () => {
-    setFormData((prev) => ({
-      ...prev,
-      additional_dates: [...prev.additional_dates, { date: "", notes: "" }],
-    }));
+    const currentDates = watch("additional_dates") || [];
+    setValue("additional_dates", [...currentDates, { date: "" }]);
   };
 
-  const handleDateChange = (index, field, value) => {
-    setFormData((prev) => {
-      const newDates = [...prev.additional_dates];
-      newDates[index] = { ...newDates[index], [field]: value };
-      return { ...prev, additional_dates: newDates };
-    });
+  const handleDateChange = (index, value) => {
+    const currentDates = watch("additional_dates") || [];
+    const newDates = [...currentDates];
+    newDates[index] = { date: value };
+    setValue("additional_dates", newDates);
   };
 
   const handleRemoveDate = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      additional_dates: prev.additional_dates.filter((_, i) => i !== index),
-    }));
+    const currentDates = watch("additional_dates") || [];
+    setValue(
+      "additional_dates",
+      currentDates.filter((_, i) => i !== index)
+    );
   };
 
   // Venue handlers
   const handleAddVenue = () => {
-    setFormData((prev) => ({
-      ...prev,
-      additional_venues: [
-        ...prev.additional_venues,
-        {
-          venue_name: "",
-          hall_name: "",
-          venue_address: "",
-          pax: "",
-          loading_dock_notes: "",
-          safety_precautions: "",
-          parking_passes: "",
-          security_access: "",
-        },
-      ],
-    }));
+    const currentVenues = watch("additional_venues") || [];
+    setValue("additional_venues", [
+      ...currentVenues,
+      {
+        venue_name: "",
+        hall_name: "",
+        venue_address: "",
+        pax: "",
+        loading_dock_notes: "",
+        safety_precautions: "",
+        parking_passes: "",
+        security_access: "",
+      },
+    ]);
   };
 
-  const handleVenueChange = (index, field, value, isAdditional = false) => {
-    if (isAdditional) {
-      setFormData((prev) => {
-        const newVenues = [...prev.additional_venues];
-        newVenues[index] = { ...newVenues[index], [field]: value };
-        return { ...prev, additional_venues: newVenues };
-      });
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [field]: value,
-      }));
-    }
+  const handleVenueChange = (index, field, value) => {
+    const currentVenues = watch("additional_venues") || [];
+    const newVenues = [...currentVenues];
+    newVenues[index] = { ...newVenues[index], [field]: value };
+    setValue("additional_venues", newVenues);
   };
 
   const handleRemoveVenue = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      additional_venues: prev.additional_venues.filter((_, i) => i !== index),
-    }));
+    const currentVenues = watch("additional_venues") || [];
+    setValue(
+      "additional_venues",
+      currentVenues.filter((_, i) => i !== index)
+    );
   };
 
   const inputClass =
     "w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent";
+  const errorInputClass =
+    "w-full px-4 py-2.5 border border-red-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent";
   const labelClass = "block text-sm font-medium text-gray-700 mb-1";
   const requiredLabelClass = "block text-sm font-medium text-gray-700 mb-1";
   const requiredStar = <span className="text-red-500 ml-1">*</span>;
+  const errorClass = "text-sm text-red-500 mt-1";
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -170,7 +189,7 @@ function CreateEvent() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-12">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-12">
         {/* SECTION 1: Basic information */}
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -181,9 +200,7 @@ function CreateEvent() {
               <label className={labelClass}>Job ID</label>
               <input
                 type="text"
-                name="job_id"
-                value={formData.job_id}
-                onChange={handleChange}
+                {...register("job_id")}
                 placeholder="AV-2026-001"
                 className={inputClass}
               />
@@ -194,20 +211,20 @@ function CreateEvent() {
               </label>
               <input
                 type="text"
-                name="event_name"
-                value={formData.event_name}
-                onChange={handleChange}
-                required
+                {...register("event_name", {
+                  required: "Event name is required",
+                })}
                 placeholder="Full Title of the Event"
-                className={inputClass}
+                className={errors.event_name ? errorInputClass : inputClass}
               />
+              {errors.event_name && (
+                <p className={errorClass}>{errors.event_name.message}</p>
+              )}
             </div>
             <div className="lg:col-span-3">
               <label className={labelClass}>Description</label>
               <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
+                {...register("description")}
                 rows={3}
                 placeholder="Event description or notes"
                 className={inputClass}
@@ -219,61 +236,95 @@ function CreateEvent() {
               </label>
               <input
                 type="text"
-                name="client_name"
-                value={formData.client_name}
-                onChange={handleChange}
-                required
+                {...register("client_name", {
+                  required: "Client name is required",
+                })}
                 placeholder="Client Company Name"
-                className={inputClass}
+                className={errors.client_name ? errorInputClass : inputClass}
               />
+              {errors.client_name && (
+                <p className={errorClass}>{errors.client_name.message}</p>
+              )}
             </div>
             <div>
               <label className={requiredLabelClass}>
                 Client Type{requiredStar}
               </label>
               <select
-                name="client_type"
-                value={formData.client_type}
-                onChange={handleChange}
-                required
-                className={inputClass}
+                {...register("client_type", {
+                  required: "Client type is required",
+                })}
+                className={errors.client_type ? errorInputClass : inputClass}
               >
                 <option value="">Select Type</option>
                 <option value="direct">Direct</option>
                 <option value="indirect">Indirect</option>
               </select>
+              {errors.client_type && (
+                <p className={errorClass}>{errors.client_type.message}</p>
+              )}
             </div>
             <div>
               <label className={requiredLabelClass}>
                 Event Type{requiredStar}
               </label>
               <select
-                name="event_type"
-                value={formData.event_type}
-                onChange={handleChange}
-                required
-                className={inputClass}
+                {...register("event_type", {
+                  required: "Event type is required",
+                })}
+                className={errors.event_type ? errorInputClass : inputClass}
               >
                 <option value="">Select Type</option>
-                <option value="SI">SI</option>
-                <option value="RSI">RSI</option>
-                <option value="AV">AV</option>
-                <option value="Broadcast">Broadcast</option>
+                {eventTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
+                  </option>
+                ))}
               </select>
+              {errors.event_type && (
+                <p className={errorClass}>{errors.event_type.message}</p>
+              )}
+            </div>
+            <div>
+              <label className={requiredLabelClass}>
+                Job Status{requiredStar}
+              </label>
+              <select
+                {...register("job_status", {
+                  required: "Job status is required",
+                })}
+                className={errors.job_status ? errorInputClass : inputClass}
+              >
+                <option value="">Select Status</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              {errors.job_status && (
+                <p className={errorClass}>{errors.job_status.message}</p>
+              )}
             </div>
             <div>
               <label className={requiredLabelClass}>
                 Project Manager{requiredStar}
               </label>
-              <input
-                type="text"
-                name="project_manager_id"
-                value={formData.project_manager_id}
-                onChange={handleChange}
-                required
-                placeholder="Project Manager Name"
-                className={inputClass}
-              />
+              <select
+                {...register("project_manager_id", {
+                  required: "Project manager is required",
+                })}
+                className={errors.project_manager_id ? errorInputClass : inputClass}
+              >
+                <option value="">Select Project Manager</option>
+                {projectManagers.map((manager) => (
+                  <option key={manager.id} value={manager.id}>
+                    {manager.name}
+                  </option>
+                ))}
+              </select>
+              {errors.project_manager_id && (
+                <p className={errorClass}>{errors.project_manager_id.message}</p>
+              )}
             </div>
           </div>
         </section>
@@ -291,33 +342,37 @@ function CreateEvent() {
               </label>
               <input
                 type="datetime-local"
-                name="setup_date"
-                value={formData.setup_date}
-                onChange={handleChange}
-                required
-                className={inputClass}
+                {...register("setup_date", {
+                  required: "Setup start is required",
+                })}
+                className={errors.setup_date ? errorInputClass : inputClass}
               />
+              {errors.setup_date && (
+                <p className={errorClass}>{errors.setup_date.message}</p>
+              )}
             </div>
 
             {/* Single Day - Default */}
-            {!formData.is_multiple_days && (
+            {!isMultipleDays && (
               <div>
                 <label className={requiredLabelClass}>
                   Event Date{requiredStar}
                 </label>
                 <input
                   type="date"
-                  name="event_date"
-                  value={formData.event_date}
-                  onChange={handleChange}
-                  required
-                  className={inputClass}
+                  {...register("event_date", {
+                    required: "Event date is required",
+                  })}
+                  className={errors.event_date ? errorInputClass : inputClass}
                 />
+                {errors.event_date && (
+                  <p className={errorClass}>{errors.event_date.message}</p>
+                )}
               </div>
             )}
 
             {/* Multiple Day */}
-            {formData.is_multiple_days && (
+            {isMultipleDays && (
               <div className="space-y-4">
                 <div>
                   <label className={requiredLabelClass}>
@@ -325,23 +380,25 @@ function CreateEvent() {
                   </label>
                   <input
                     type="date"
-                    name="event_date"
-                    value={formData.event_date}
-                    onChange={handleChange}
-                    required
-                    className={inputClass}
+                    {...register("event_date", {
+                      required: "Event start date is required",
+                    })}
+                    className={errors.event_date ? errorInputClass : inputClass}
                   />
+                  {errors.event_date && (
+                    <p className={errorClass}>{errors.event_date.message}</p>
+                  )}
                 </div>
 
                 {/* Additional Dates - Show when button clicked */}
-                {formData.additional_dates.map((additionalDate, index) => (
+                {(additionalDates || []).map((additionalDate, index) => (
                   <div key={index} className="flex gap-2 items-center">
                     <div className="flex-1">
                       <input
                         type="date"
-                        value={additionalDate.date}
+                        value={additionalDate?.date || ""}
                         onChange={(e) =>
-                          handleDateChange(index, "date", e.target.value)
+                          handleDateChange(index, e.target.value)
                         }
                         className={inputClass}
                       />
@@ -373,10 +430,8 @@ function CreateEvent() {
               <div className="flex items-center">
                 <input
                   type="checkbox"
-                  name="is_multiple_days"
+                  {...register("is_multiple_days")}
                   id="is_multiple_days"
-                  checked={formData.is_multiple_days}
-                  onChange={handleChange}
                   className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
                 <label
@@ -402,13 +457,15 @@ function CreateEvent() {
               </label>
               <input
                 type="text"
-                name="venue_name"
-                value={formData.venue_name}
-                onChange={handleChange}
-                required
+                {...register("venue_name", {
+                  required: "Venue name is required",
+                })}
                 placeholder="Name of Hotel/Convention Center"
-                className={inputClass}
+                className={errors.venue_name ? errorInputClass : inputClass}
               />
+              {errors.venue_name && (
+                <p className={errorClass}>{errors.venue_name.message}</p>
+              )}
             </div>
             <div>
               <label className={requiredLabelClass}>
@@ -416,13 +473,15 @@ function CreateEvent() {
               </label>
               <input
                 type="text"
-                name="hall_name"
-                value={formData.hall_name}
-                onChange={handleChange}
-                required
+                {...register("hall_name", {
+                  required: "Hall name is required",
+                })}
                 placeholder="Specific Room or Ballroom"
-                className={inputClass}
+                className={errors.hall_name ? errorInputClass : inputClass}
               />
+              {errors.hall_name && (
+                <p className={errorClass}>{errors.hall_name.message}</p>
+              )}
             </div>
             <div className="md:col-span-2">
               <label className={requiredLabelClass}>
@@ -430,13 +489,15 @@ function CreateEvent() {
               </label>
               <input
                 type="text"
-                name="venue_address"
-                value={formData.venue_address}
-                onChange={handleChange}
-                required
+                {...register("venue_address", {
+                  required: "Venue address is required",
+                })}
                 placeholder="Full physical address"
-                className={inputClass}
+                className={errors.venue_address ? errorInputClass : inputClass}
               />
+              {errors.venue_address && (
+                <p className={errorClass}>{errors.venue_address.message}</p>
+              )}
             </div>
             <div>
               <label className={requiredLabelClass}>
@@ -444,51 +505,56 @@ function CreateEvent() {
               </label>
               <input
                 type="number"
-                name="pax"
-                value={formData.pax}
-                onChange={handleChange}
-                required
+                {...register("pax", {
+                  required: "Pax is required",
+                  min: { value: 1, message: "Pax must be at least 1" },
+                })}
                 placeholder="Number of guests"
-                className={inputClass}
+                className={errors.pax ? errorInputClass : inputClass}
               />
+              {errors.pax && (
+                <p className={errorClass}>{errors.pax.message}</p>
+              )}
             </div>
             <div>
               <label className={requiredLabelClass}>
                 Loading Dock Details{requiredStar}
               </label>
               <textarea
-                name="loading_dock_notes"
-                value={formData.loading_dock_notes}
-                onChange={handleChange}
-                required
+                {...register("loading_dock_notes", {
+                  required: "Loading dock details are required",
+                })}
                 rows={2}
                 placeholder="Dock height, ramp access, street-load restrictions"
-                className={inputClass}
+                className={errors.loading_dock_notes ? errorInputClass : inputClass}
               />
+              {errors.loading_dock_notes && (
+                <p className={errorClass}>{errors.loading_dock_notes.message}</p>
+              )}
             </div>
             <div>
               <label className={requiredLabelClass}>
                 Safety Precautions{requiredStar}
               </label>
               <select
-                name="safety_precautions"
-                value={formData.safety_precautions}
-                onChange={handleChange}
-                required
-                className={inputClass}
+                {...register("safety_precautions", {
+                  required: "Safety precautions is required",
+                })}
+                className={errors.safety_precautions ? errorInputClass : inputClass}
               >
                 <option value="">Select</option>
                 <option value="yes">Yes</option>
                 <option value="no">No</option>
               </select>
+              {errors.safety_precautions && (
+                <p className={errorClass}>{errors.safety_precautions.message}</p>
+              )}
             </div>
             <div>
               <label className={labelClass}>Parking Passes</label>
               <input
                 type="number"
-                name="parking_passes"
-                value={formData.parking_passes}
-                onChange={handleChange}
+                {...register("parking_passes")}
                 placeholder="Number of truck/crew spots"
                 className={inputClass}
               />
@@ -499,13 +565,15 @@ function CreateEvent() {
               </label>
               <input
                 type="text"
-                name="security_access"
-                value={formData.security_access}
-                onChange={handleChange}
-                required
+                {...register("security_access", {
+                  required: "Security access is required",
+                })}
                 placeholder="Badge requirements or security clearance"
-                className={inputClass}
+                className={errors.security_access ? errorInputClass : inputClass}
               />
+              {errors.security_access && (
+                <p className={errorClass}>{errors.security_access.message}</p>
+              )}
             </div>
 
             {/* Multiple Venues Toggle */}
@@ -513,10 +581,8 @@ function CreateEvent() {
               <div className="flex items-center">
                 <input
                   type="checkbox"
-                  name="is_multiple_venues"
+                  {...register("is_multiple_venues")}
                   id="is_multiple_venues"
-                  checked={formData.is_multiple_venues}
-                  onChange={handleChange}
                   className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
                 <label
@@ -529,9 +595,9 @@ function CreateEvent() {
             </div>
 
             {/* Additional Venues */}
-            {formData.is_multiple_venues && (
+            {isMultipleVenues && (
               <div className="md:col-span-2 space-y-6 pt-4">
-                {formData.additional_venues.map((venue, index) => (
+                {(additionalVenues || []).map((venue, index) => (
                   <div
                     key={index}
                     className="p-4 bg-gray-50 rounded-lg space-y-4"
@@ -554,13 +620,12 @@ function CreateEvent() {
                         <label className={labelClass}>Venue Name</label>
                         <input
                           type="text"
-                          value={venue.venue_name}
+                          value={venue?.venue_name || ""}
                           onChange={(e) =>
                             handleVenueChange(
                               index,
                               "venue_name",
                               e.target.value,
-                              true,
                             )
                           }
                           placeholder="Name of Hotel/Convention Center"
@@ -571,13 +636,12 @@ function CreateEvent() {
                         <label className={labelClass}>Hall Name</label>
                         <input
                           type="text"
-                          value={venue.hall_name}
+                          value={venue?.hall_name || ""}
                           onChange={(e) =>
                             handleVenueChange(
                               index,
                               "hall_name",
                               e.target.value,
-                              true,
                             )
                           }
                           placeholder="Specific Room or Ballroom"
@@ -588,13 +652,12 @@ function CreateEvent() {
                         <label className={labelClass}>Venue Address</label>
                         <input
                           type="text"
-                          value={venue.venue_address}
+                          value={venue?.venue_address || ""}
                           onChange={(e) =>
                             handleVenueChange(
                               index,
                               "venue_address",
                               e.target.value,
-                              true,
                             )
                           }
                           placeholder="Full physical address"
@@ -607,13 +670,12 @@ function CreateEvent() {
                         </label>
                         <input
                           type="number"
-                          value={venue.pax}
+                          value={venue?.pax || ""}
                           onChange={(e) =>
                             handleVenueChange(
                               index,
                               "pax",
                               e.target.value,
-                              true,
                             )
                           }
                           placeholder="Number of guests"
@@ -625,13 +687,12 @@ function CreateEvent() {
                           Loading Dock Details
                         </label>
                         <textarea
-                          value={venue.loading_dock_notes}
+                          value={venue?.loading_dock_notes || ""}
                           onChange={(e) =>
                             handleVenueChange(
                               index,
                               "loading_dock_notes",
                               e.target.value,
-                              true,
                             )
                           }
                           rows={2}
@@ -642,13 +703,12 @@ function CreateEvent() {
                       <div>
                         <label className={labelClass}>Safety Precautions</label>
                         <select
-                          value={venue.safety_precautions}
+                          value={venue?.safety_precautions || ""}
                           onChange={(e) =>
                             handleVenueChange(
                               index,
                               "safety_precautions",
                               e.target.value,
-                              true,
                             )
                           }
                           className={inputClass}
@@ -662,13 +722,12 @@ function CreateEvent() {
                         <label className={labelClass}>Parking Passes</label>
                         <input
                           type="number"
-                          value={venue.parking_passes}
+                          value={venue?.parking_passes || ""}
                           onChange={(e) =>
                             handleVenueChange(
                               index,
                               "parking_passes",
                               e.target.value,
-                              true,
                             )
                           }
                           placeholder="Number of truck/crew spots"
@@ -679,13 +738,12 @@ function CreateEvent() {
                         <label className={labelClass}>Security Access</label>
                         <input
                           type="text"
-                          value={venue.security_access}
+                          value={venue?.security_access || ""}
                           onChange={(e) =>
                             handleVenueChange(
                               index,
                               "security_access",
                               e.target.value,
-                              true,
                             )
                           }
                           placeholder="Badge requirements"
@@ -720,24 +778,25 @@ function CreateEvent() {
               </label>
               <input
                 type="text"
-                name="contact_name"
-                value={formData.contact_name}
-                onChange={handleChange}
-                required
+                {...register("contact_name", {
+                  required: "Contact name is required",
+                })}
                 placeholder="Full Name"
-                className={inputClass}
+                className={errors.contact_name ? errorInputClass : inputClass}
               />
+              {errors.contact_name && (
+                <p className={errorClass}>{errors.contact_name.message}</p>
+              )}
             </div>
             <div>
               <label className={requiredLabelClass}>
                 Contact Role{requiredStar}
               </label>
               <select
-                name="contact_role"
-                value={formData.contact_role}
-                onChange={handleChange}
-                required
-                className={inputClass}
+                {...register("contact_role", {
+                  required: "Contact role is required",
+                })}
+                className={errors.contact_role ? errorInputClass : inputClass}
               >
                 <option value="">Select Role</option>
                 <option value="Project Manager">Project Manager</option>
@@ -747,37 +806,46 @@ function CreateEvent() {
                 <option value="Client Lead">Client Lead</option>
                 <option value="Technical Manager">Technical Manager</option>
               </select>
+              {errors.contact_role && (
+                <p className={errorClass}>{errors.contact_role.message}</p>
+              )}
             </div>
             <div>
               <label className={requiredLabelClass}>Phone{requiredStar}</label>
               <input
                 type="tel"
-                name="contact_mobile"
-                value={formData.contact_mobile}
-                onChange={handleChange}
-                required
+                {...register("contact_mobile", {
+                  required: "Phone number is required",
+                })}
                 placeholder="Phone number"
-                className={inputClass}
+                className={errors.contact_mobile ? errorInputClass : inputClass}
               />
+              {errors.contact_mobile && (
+                <p className={errorClass}>{errors.contact_mobile.message}</p>
+              )}
             </div>
             <div>
               <label className={labelClass}>Contact Email</label>
               <input
                 type="email"
-                name="contact_email"
-                value={formData.contact_email}
-                onChange={handleChange}
+                {...register("contact_email", {
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: "Invalid email address",
+                  },
+                })}
                 placeholder="Email address"
-                className={inputClass}
+                className={errors.contact_email ? errorInputClass : inputClass}
               />
+              {errors.contact_email && (
+                <p className={errorClass}>{errors.contact_email.message}</p>
+              )}
             </div>
             <div className="flex items-center pt-6">
               <input
                 type="checkbox"
-                name="is_on_site"
+                {...register("is_on_site")}
                 id="is_on_site"
-                checked={formData.is_on_site}
-                onChange={handleChange}
                 className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
               <label
@@ -800,23 +868,35 @@ function CreateEvent() {
               <label className={labelClass}>Floor Plan File</label>
               <input
                 type="url"
-                name="file_floor_plan"
-                value={formData.file_floor_plan}
-                onChange={handleChange}
+                {...register("file_floor_plan", {
+                  pattern: {
+                    value: /^https?:\/\/.+/i,
+                    message: "Invalid URL",
+                  },
+                })}
                 placeholder="Link to CAD/PDF/IMG of room layout"
-                className={inputClass}
+                className={errors.file_floor_plan ? errorInputClass : inputClass}
               />
+              {errors.file_floor_plan && (
+                <p className={errorClass}>{errors.file_floor_plan.message}</p>
+              )}
             </div>
             <div>
               <label className={labelClass}>Run of Show File</label>
               <input
                 type="url"
-                name="file_run_of_show"
-                value={formData.file_run_of_show}
-                onChange={handleChange}
+                {...register("file_run_of_show", {
+                  pattern: {
+                    value: /^https?:\/\/.+/i,
+                    message: "Invalid URL",
+                  },
+                })}
                 placeholder="Link to schedule/AGENDA"
-                className={inputClass}
+                className={errors.file_run_of_show ? errorInputClass : inputClass}
               />
+              {errors.file_run_of_show && (
+                <p className={errorClass}>{errors.file_run_of_show.message}</p>
+              )}
             </div>
           </div>
         </section>

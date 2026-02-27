@@ -56,6 +56,46 @@ export async function fetchRecentEvents(limit = 5) {
   }
 }
 
+// Fetch project managers from project_managers table
+export async function fetchProjectManagers() {
+  try {
+    const { data, error } = await supabase
+      .from("project_managers")
+      .select("*")
+      .order("id", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching project managers:", error);
+      return { success: false, error: error.message, managers: [] };
+    }
+
+    return { success: true, managers: data || [] };
+  } catch (err) {
+    console.error("Unexpected error fetching project managers:", err);
+    return { success: false, error: err.message, managers: [] };
+  }
+}
+
+// Fetch event types from event_types table
+export async function fetchEventTypes() {
+  try {
+    const { data, error } = await supabase
+      .from("event_types")
+      .select("*")
+      .order("id", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching event types:", error);
+      return { success: false, error: error.message, eventTypes: [] };
+    }
+
+    return { success: true, eventTypes: data || [] };
+  } catch (err) {
+    console.error("Unexpected error fetching event types:", err);
+    return { success: false, error: err.message, eventTypes: [] };
+  }
+}
+
 // Sign in with email and password
 export async function authLogin(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -102,6 +142,7 @@ export async function createEvent(eventData, userId) {
         client_type: eventData.client_type,
         event_type: eventData.event_type,
         project_manager_id: eventData.project_manager_id,
+        job_status: eventData.job_status,
         setup_date: eventData.setup_date,
         event_date: eventData.event_date,
         is_multiple_days: eventData.is_multiple_days,
@@ -199,6 +240,9 @@ export async function createEvent(eventData, userId) {
 
       if (datesError) {
         console.error("Error creating additional dates:", datesError);
+        // Rollback: Delete the event and all related venues
+        await supabase.from("event_venues").delete().eq("event_id", eventId);
+        await supabase.from("events").delete().eq("id", eventId);
         return { success: false, error: datesError.message };
       }
     }
