@@ -1,15 +1,32 @@
 import { useState, useContext, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import Button from "../../components/common/Button";
-import { createEvent, fetchProjectManagers, fetchEventTypes } from "../../lib/supabase";
+import {
+  createEvent,
+  fetchProjectManagers,
+  fetchEventTypes,
+  fetchLastJobId,
+} from "../../lib/supabase";
 import { AuthContext } from "../../contexts/AuthContext";
+
+// Helper to parse datetime-local input (no timezone conversion)
+function parseUaeDate(dateString) {
+  if (!dateString) return null;
+  // datetime-local gives YYYY-MM-DDTHH:MM, parse directly
+  const [datePart, timePart] = dateString.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hours, minutes] = timePart.split(":").map(Number);
+  // Create date directly without timezone adjustment
+  const date = new Date(year, month - 1, day, hours, minutes);
+  return date;
+}
 
 function CreateEvent() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [formMessage, setFormMessage] = useState(null);
   const [projectManagers, setProjectManagers] = useState([]);
   const [eventTypes, setEventTypes] = useState([]);
-  console.log(eventTypes)
+  const [baseJobId, setBaseJobId] = useState(""); // Stores job_id with XX placeholder
 
   const { user } = useContext(AuthContext);
 
@@ -18,6 +35,8 @@ function CreateEvent() {
     handleSubmit,
     watch,
     setValue,
+    setError: setFormError,
+    clearErrors,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -66,13 +85,109 @@ function CreateEvent() {
   const isMultipleVenues = watch("is_multiple_venues");
   const additionalDates = watch("additional_dates");
   const additionalVenues = watch("additional_venues");
+  const watchedEventType = watch("event_type");
 
-  // Fetch project managers and event types on component mount
+  // Update job_id when event_type changes
+  useEffect(() => {
+    if (watchedEventType && baseJobId && eventTypes.length > 0) {
+      // Convert watchedEventType to number for comparison since dropdown value is string
+      const selectedTypeId = Number(watchedEventType);
+      const selectedType = eventTypes.find(
+        (type) => type.id === selectedTypeId,
+      );
+      if (selectedType) {
+        // Use the event type name as the code (SI, RSI, AV, SI-AV, BC)
+        const eventTypeCode = selectedType.name;
+        const updatedJobId = baseJobId.replace("XX", eventTypeCode);
+        setValue("job_id", updatedJobId);
+      }
+    }
+  }, [watchedEventType, eventTypes, baseJobId, setValue]);
+
+  // Real-time validation for dates
+  const watchedSetupDate = watch("setup_date");
+  const watchedEventDate = watch("event_date");
+  const watchedIsMultipleDays = watch("is_multiple_days");
+  const watchedAdditionalDates = watch("additional_dates");
+
+  useEffect(() => {
+    // Validate Setup Date vs Event Date (both directions)
+    if (watchedSetupDate && watchedEventDate) {
+      const setupDate = parseUaeDate(watchedSetupDate);
+      const eventDate = parseUaeDate(watchedEventDate);
+      let lastEventDate = eventDate;
+
+      // For multi-day events, check against last additional date
+      if (watchedIsMultipleDays && watchedAdditionalDates?.length > 0) {
+        const lastAdditional =
+          watchedAdditionalDates[watchedAdditionalDates.length - 1];
+        if (lastAdditional?.date) {
+          lastEventDate = parseUaeDate(lastAdditional.date);
+        }
+      }
+
+      // Check: setup date must be before event date
+      if (setupDate >= lastEventDate) {
+        setFormError("setup_date", {
+          type: "manual",
+          message: "Setup date must be before the event date",
+        });
+      } else {
+        clearErrors("setup_date");
+      }
+
+      // Check: event date cannot be before setup date
+      if (eventDate <= setupDate) {
+        setFormError("event_date", {
+          type: "manual",
+          message: "Event date must be after the setup date",
+        });
+      } else {
+        clearErrors("event_date");
+      }
+
+      // Validate additional dates are in chronological order
+      if (watchedIsMultipleDays && watchedAdditionalDates?.length > 0) {
+        let prevDate = eventDate;
+        let hasDateError = false;
+
+        for (const addDate of watchedAdditionalDates) {
+          if (addDate?.date) {
+            const currentDate = parseUaeDate(addDate.date);
+            if (currentDate <= prevDate) {
+              hasDateError = true;
+              break;
+            }
+            prevDate = currentDate;
+          }
+        }
+
+        if (hasDateError) {
+          setFormError("additional_dates", {
+            type: "manual",
+            message: "Additional dates must be in chronological order",
+          });
+        } else {
+          clearErrors("additional_dates");
+        }
+      }
+    }
+  }, [
+    watchedSetupDate,
+    watchedEventDate,
+    watchedIsMultipleDays,
+    watchedAdditionalDates,
+    setFormError,
+    clearErrors,
+  ]);
+
+  // Fetch project managers, event types and last job_id on component mount
   useEffect(() => {
     async function loadData() {
-      const [pmResult, etResult] = await Promise.all([
+      const [pmResult, etResult, lastJobIdResult] = await Promise.all([
         fetchProjectManagers(),
-        fetchEventTypes()
+        fetchEventTypes(),
+        fetchLastJobId(),
       ]);
 
       if (pmResult.success) {
@@ -81,13 +196,42 @@ function CreateEvent() {
       if (etResult.success) {
         setEventTypes(etResult.eventTypes);
       }
+
+      // Generate auto job_id
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      const currentDate = `${yyyy}${mm}${dd}`;
+
+      let nextSequence = 1;
+      if (lastJobIdResult.success && lastJobIdResult.jobId) {
+        // Parse last job_id: YYYYMMDD-EVENT_TYPE-SEQUENCE
+        // Example: 20260227-SI-01
+        const lastJobId = lastJobIdResult.jobId;
+        const parts = lastJobId.split("-");
+        if (parts.length >= 3) {
+          const lastDate = parts[0];
+          const lastSequence = parseInt(parts[2], 10);
+          // Validate parsing succeeded and check if last event is from today
+          if (!isNaN(lastSequence) && lastDate === currentDate) {
+            nextSequence = lastSequence + 1;
+          }
+        }
+      }
+
+      // Format: YYYYMMDD-XX-SEQUENCE (XX is placeholder until event type is selected)
+      const sequenceStr = String(nextSequence).padStart(2, "0");
+      const defaultJobId = `${currentDate}-XX-${sequenceStr}`;
+      setBaseJobId(defaultJobId);
+      setValue("job_id", defaultJobId);
     }
     loadData();
   }, []);
 
   const onSubmit = async (data) => {
     setLoading(true);
-    setError(null);
+    setFormMessage(null);
 
     try {
       const result = await createEvent(data, user.id);
@@ -96,10 +240,10 @@ function CreateEvent() {
         alert("Event created successfully!");
         window.history.back();
       } else {
-        setError(result.error || "Failed to create event");
+        setFormMessage(result.error || "Failed to create event");
       }
     } catch (err) {
-      setError("An unexpected error occurred");
+      setFormMessage("An unexpected error occurred");
       console.error(err);
     } finally {
       setLoading(false);
@@ -122,7 +266,7 @@ function CreateEvent() {
     const currentDates = watch("additional_dates") || [];
     setValue(
       "additional_dates",
-      currentDates.filter((_, i) => i !== index)
+      currentDates.filter((_, i) => i !== index),
     );
   };
 
@@ -155,7 +299,7 @@ function CreateEvent() {
     const currentVenues = watch("additional_venues") || [];
     setValue(
       "additional_venues",
-      currentVenues.filter((_, i) => i !== index)
+      currentVenues.filter((_, i) => i !== index),
     );
   };
 
@@ -177,9 +321,9 @@ function CreateEvent() {
         Schedule a new project event or meeting
       </p>
 
-      {error && (
+      {formMessage && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-          {error}
+          {formMessage}
         </div>
       )}
 
@@ -201,9 +345,13 @@ function CreateEvent() {
               <input
                 type="text"
                 {...register("job_id")}
-                placeholder="AV-2026-001"
-                className={inputClass}
+                placeholder="Auto-generated (e.g., 20260227-SI-01)"
+                className={`${inputClass} bg-gray-100 cursor-not-allowed`}
+                readOnly
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Job ID is auto-generated based on date and event type
+              </p>
             </div>
             <div className="lg:col-span-2">
               <label className={requiredLabelClass}>
@@ -313,7 +461,9 @@ function CreateEvent() {
                 {...register("project_manager_id", {
                   required: "Project manager is required",
                 })}
-                className={errors.project_manager_id ? errorInputClass : inputClass}
+                className={
+                  errors.project_manager_id ? errorInputClass : inputClass
+                }
               >
                 <option value="">Select Project Manager</option>
                 {projectManagers.map((manager) => (
@@ -323,7 +473,9 @@ function CreateEvent() {
                 ))}
               </select>
               {errors.project_manager_id && (
-                <p className={errorClass}>{errors.project_manager_id.message}</p>
+                <p className={errorClass}>
+                  {errors.project_manager_id.message}
+                </p>
               )}
             </div>
           </div>
@@ -335,23 +487,6 @@ function CreateEvent() {
             Time and Dates
           </h2>
           <div className="space-y-4">
-            {/* Setup Start */}
-            <div>
-              <label className={requiredLabelClass}>
-                Setup Start{requiredStar}
-              </label>
-              <input
-                type="datetime-local"
-                {...register("setup_date", {
-                  required: "Setup start is required",
-                })}
-                className={errors.setup_date ? errorInputClass : inputClass}
-              />
-              {errors.setup_date && (
-                <p className={errorClass}>{errors.setup_date.message}</p>
-              )}
-            </div>
-
             {/* Single Day - Default */}
             {!isMultipleDays && (
               <div>
@@ -442,6 +577,23 @@ function CreateEvent() {
                 </label>
               </div>
             </div>
+
+            {/* Setup date */}
+            <div>
+              <label className={requiredLabelClass}>
+                Setup date{requiredStar}
+              </label>
+              <input
+                type="datetime-local"
+                {...register("setup_date", {
+                  required: "Setup date is required",
+                })}
+                className={errors.setup_date ? errorInputClass : inputClass}
+              />
+              {errors.setup_date && (
+                <p className={errorClass}>{errors.setup_date.message}</p>
+              )}
+            </div>
           </div>
         </section>
 
@@ -505,6 +657,7 @@ function CreateEvent() {
               </label>
               <input
                 type="number"
+                min="0"
                 {...register("pax", {
                   required: "Pax is required",
                   min: { value: 1, message: "Pax must be at least 1" },
@@ -512,9 +665,7 @@ function CreateEvent() {
                 placeholder="Number of guests"
                 className={errors.pax ? errorInputClass : inputClass}
               />
-              {errors.pax && (
-                <p className={errorClass}>{errors.pax.message}</p>
-              )}
+              {errors.pax && <p className={errorClass}>{errors.pax.message}</p>}
             </div>
             <div>
               <label className={requiredLabelClass}>
@@ -526,10 +677,14 @@ function CreateEvent() {
                 })}
                 rows={2}
                 placeholder="Dock height, ramp access, street-load restrictions"
-                className={errors.loading_dock_notes ? errorInputClass : inputClass}
+                className={
+                  errors.loading_dock_notes ? errorInputClass : inputClass
+                }
               />
               {errors.loading_dock_notes && (
-                <p className={errorClass}>{errors.loading_dock_notes.message}</p>
+                <p className={errorClass}>
+                  {errors.loading_dock_notes.message}
+                </p>
               )}
             </div>
             <div>
@@ -540,37 +695,44 @@ function CreateEvent() {
                 {...register("safety_precautions", {
                   required: "Safety precautions is required",
                 })}
-                className={errors.safety_precautions ? errorInputClass : inputClass}
+                className={
+                  errors.safety_precautions ? errorInputClass : inputClass
+                }
               >
                 <option value="">Select</option>
                 <option value="yes">Yes</option>
                 <option value="no">No</option>
               </select>
               {errors.safety_precautions && (
-                <p className={errorClass}>{errors.safety_precautions.message}</p>
+                <p className={errorClass}>
+                  {errors.safety_precautions.message}
+                </p>
               )}
             </div>
             <div>
               <label className={labelClass}>Parking Passes</label>
-              <input
-                type="number"
-                {...register("parking_passes")}
-                placeholder="Number of truck/crew spots"
-                className={inputClass}
-              />
+              <select {...register("parking_passes")} className={inputClass}>
+                <option value="">Select Option</option>
+                <option value="available">Available</option>
+                <option value="not_available">Not Available</option>
+              </select>
             </div>
             <div>
               <label className={requiredLabelClass}>
-                Security Access{requiredStar}
+                Security Access ID/Badge Required{requiredStar}
               </label>
-              <input
-                type="text"
+              <select
                 {...register("security_access", {
                   required: "Security access is required",
                 })}
-                placeholder="Badge requirements or security clearance"
-                className={errors.security_access ? errorInputClass : inputClass}
-              />
+                className={
+                  errors.security_access ? errorInputClass : inputClass
+                }
+              >
+                <option value="">Select Option</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
               {errors.security_access && (
                 <p className={errorClass}>{errors.security_access.message}</p>
               )}
@@ -672,11 +834,7 @@ function CreateEvent() {
                           type="number"
                           value={venue?.pax || ""}
                           onChange={(e) =>
-                            handleVenueChange(
-                              index,
-                              "pax",
-                              e.target.value,
-                            )
+                            handleVenueChange(index, "pax", e.target.value)
                           }
                           placeholder="Number of guests"
                           className={inputClass}
@@ -875,7 +1033,9 @@ function CreateEvent() {
                   },
                 })}
                 placeholder="Link to CAD/PDF/IMG of room layout"
-                className={errors.file_floor_plan ? errorInputClass : inputClass}
+                className={
+                  errors.file_floor_plan ? errorInputClass : inputClass
+                }
               />
               {errors.file_floor_plan && (
                 <p className={errorClass}>{errors.file_floor_plan.message}</p>
@@ -892,7 +1052,9 @@ function CreateEvent() {
                   },
                 })}
                 placeholder="Link to schedule/AGENDA"
-                className={errors.file_run_of_show ? errorInputClass : inputClass}
+                className={
+                  errors.file_run_of_show ? errorInputClass : inputClass
+                }
               />
               {errors.file_run_of_show && (
                 <p className={errorClass}>{errors.file_run_of_show.message}</p>

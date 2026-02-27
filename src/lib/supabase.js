@@ -96,6 +96,29 @@ export async function fetchEventTypes() {
   }
 }
 
+// Fetch the last event's job_id to generate next sequence
+export async function fetchLastJobId() {
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .select("job_id")
+      .not("job_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching last job_id:", error);
+      return { success: false, error: error.message, jobId: null };
+    }
+
+    return { success: true, jobId: data?.job_id || null };
+  } catch (err) {
+    console.error("Unexpected error fetching last job_id:", err);
+    return { success: false, error: err.message, jobId: null };
+  }
+}
+
 // Sign in with email and password
 export async function authLogin(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -176,9 +199,7 @@ export async function createEvent(eventData, userId) {
       pax: eventData.pax ? parseInt(eventData.pax) : null,
       loading_dock_notes: eventData.loading_dock_notes,
       safety_precautions: eventData.safety_precautions,
-      parking_passes: eventData.parking_passes
-        ? parseInt(eventData.parking_passes)
-        : null,
+      parking_passes: eventData.parking_passes || null,
       security_access: eventData.security_access,
     });
 
@@ -201,9 +222,7 @@ export async function createEvent(eventData, userId) {
           pax: venue.pax ? parseInt(venue.pax) : null,
           loading_dock_notes: venue.loading_dock_notes,
           safety_precautions: venue.safety_precautions,
-          parking_passes: venue.parking_passes
-            ? parseInt(venue.parking_passes)
-            : null,
+          parking_passes: venue.parking_passes || null,
           security_access: venue.security_access,
         }),
       );

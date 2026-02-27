@@ -58,7 +58,7 @@ CREATE TABLE event_venues (
   pax INTEGER,
   loading_dock_notes TEXT,
   safety_precautions TEXT CHECK (safety_precautions IN ('yes', 'no')),
-  parking_passes INTEGER,
+  parking_passes TEXT CHECK (parking_passes IN ('available', 'not_available')),
   security_access TEXT
 );
 
