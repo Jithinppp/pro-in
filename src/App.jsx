@@ -23,6 +23,7 @@ import CreateEvent from "./pages/ProjectManager/CreateEvent";
 import Reports from "./pages/ProjectManager/Reports";
 import PMEvents from "./pages/ProjectManager/PMEvents";
 import PMEquipments from "./pages/ProjectManager/PMEquipments";
+import EventDetail from "./pages/ProjectManager/EventDetail";
 
 // Tech Pages
 import Tech from "./pages/Tech/Tech";
@@ -115,6 +116,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles="pm">
               <PMEvents />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pm/events/:event_id"
+          element={
+            <ProtectedRoute allowedRoles="pm">
+              <EventDetail />
             </ProtectedRoute>
           }
         />

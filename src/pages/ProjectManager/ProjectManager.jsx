@@ -1,28 +1,43 @@
 import { useState, useEffect } from "react";
 import { Outlet, Link } from "react-router-dom";
-import Button from "../../components/common/Button";
-import { fetchRecentEvents } from "../../lib/supabase";
+import { fetchRecentEvents, fetchEventCounts } from "../../lib/supabase";
 
 function ProjectManager() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [stats, setStats] = useState({
+    total: 0,
+    confirmed: 0,
+    completed: 0,
+    pending: 0,
+  });
 
-  const loadEvents = async () => {
+  const loadData = async () => {
     setLoading(true);
     setError(null);
-    const result = await fetchRecentEvents(5);
-    if (result.success) {
-      setEvents(result.events);
+
+    const [eventsResult, countsResult] = await Promise.all([
+      fetchRecentEvents(5),
+      fetchEventCounts(),
+    ]);
+
+    if (eventsResult.success) {
+      setEvents(eventsResult.events);
     } else {
-      setError(result.error);
+      setError(eventsResult.error);
     }
+
+    if (countsResult.success) {
+      setStats(countsResult);
+    }
+
     setLoading(false);
   };
 
   useEffect(() => {
     const fetchData = async () => {
-      await loadEvents();
+      await loadData();
     };
     fetchData();
   }, []);
@@ -44,22 +59,28 @@ function ProjectManager() {
   return (
     <div className="p-6">
       {/* Quick Stats - Top */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Active Projects</p>
-          <p className="text-2xl font-semibold text-gray-900">12</p>
+          <p className="text-sm text-gray-500">Total</p>
+          <p className="text-2xl font-semibold text-gray-900">{stats.total}</p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Pending Tasks</p>
-          <p className="text-2xl font-semibold text-gray-900">24</p>
+          <p className="text-sm text-gray-500">Pending</p>
+          <p className="text-2xl font-semibold text-gray-900">
+            {stats.pending}
+          </p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Team Members</p>
-          <p className="text-2xl font-semibold text-gray-900">8</p>
+          <p className="text-sm text-gray-500">Confirmed</p>
+          <p className="text-2xl font-semibold text-gray-900">
+            {stats.confirmed}
+          </p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Equipment Available</p>
-          <p className="text-2xl font-semibold text-gray-900">156</p>
+          <p className="text-sm text-gray-500">Completed</p>
+          <p className="text-2xl font-semibold text-gray-900">
+            {stats.completed}
+          </p>
         </div>
       </div>
 
@@ -138,29 +159,32 @@ function ProjectManager() {
           ) : (
             <div className="space-y-3">
               {events.map((event) => (
-                <div
+                <Link
                   key={event.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                  to={`events/${event.id}`}
+                  className="block"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-1 h-12 rounded-full bg-blue-500"></div>
-                    <div>
-                      <p className="text-base font-semibold text-gray-900">
-                        {event.event_name || event.job_id}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {event.event_date || "No date set"}
-                      </p>
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                    <div className="flex items-center gap-4">
+                      <div className="w-1 h-12 rounded-full bg-blue-500"></div>
+                      <div>
+                        <p className="text-base font-semibold text-gray-900">
+                          {event.event_name || event.job_id}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {event.event_date || "No date set"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`px-3 py-1.5 text-sm font-medium rounded-full ${getStatusColor(event.job_status)}`}
+                      >
+                        {event.job_status || "pending"}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`px-3 py-1.5 text-sm font-medium rounded-full ${getStatusColor(event.job_status)}`}
-                    >
-                      {event.job_status || "pending"}
-                    </span>
-                  </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

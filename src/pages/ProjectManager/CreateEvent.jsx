@@ -1,6 +1,8 @@
 import { useState, useContext, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import Button from "../../components/common/Button";
+import DatePicker from "../../components/common/DatePicker";
+import DateTimePicker from "../../components/common/DateTimePicker";
 import {
   createEvent,
   fetchProjectManagers,
@@ -8,18 +10,6 @@ import {
   fetchLastJobId,
 } from "../../lib/supabase";
 import { AuthContext } from "../../contexts/AuthContext";
-
-// Helper to parse datetime-local input (no timezone conversion)
-function parseUaeDate(dateString) {
-  if (!dateString) return null;
-  // datetime-local gives YYYY-MM-DDTHH:MM, parse directly
-  const [datePart, timePart] = dateString.split("T");
-  const [year, month, day] = datePart.split("-").map(Number);
-  const [hours, minutes] = timePart.split(":").map(Number);
-  // Create date directly without timezone adjustment
-  const date = new Date(year, month - 1, day, hours, minutes);
-  return date;
-}
 
 function CreateEvent() {
   const [loading, setLoading] = useState(false);
@@ -72,7 +62,6 @@ function CreateEvent() {
       contact_role: "",
       contact_mobile: "",
       contact_email: "",
-      is_on_site: false,
 
       // Attachments
       file_floor_plan: "",
@@ -104,72 +93,83 @@ function CreateEvent() {
     }
   }, [watchedEventType, eventTypes, baseJobId, setValue]);
 
-  // Real-time validation for dates
+  // Watch date fields for validation
   const watchedSetupDate = watch("setup_date");
   const watchedEventDate = watch("event_date");
   const watchedIsMultipleDays = watch("is_multiple_days");
   const watchedAdditionalDates = watch("additional_dates");
 
+  // Date validation - setup before event, additional dates in order, no duplicates
   useEffect(() => {
-    // Validate Setup Date vs Event Date (both directions)
-    if (watchedSetupDate && watchedEventDate) {
-      const setupDate = parseUaeDate(watchedSetupDate);
-      const eventDate = parseUaeDate(watchedEventDate);
-      let lastEventDate = eventDate;
+    if (!watchedSetupDate || !watchedEventDate) return;
 
-      // For multi-day events, check against last additional date
-      if (watchedIsMultipleDays && watchedAdditionalDates?.length > 0) {
-        const lastAdditional =
-          watchedAdditionalDates[watchedAdditionalDates.length - 1];
-        if (lastAdditional?.date) {
-          lastEventDate = parseUaeDate(lastAdditional.date);
-        }
+    const setupDate = new Date(watchedSetupDate);
+    const eventDate = new Date(watchedEventDate);
+    let lastEventDate = eventDate;
+
+    // For multi-day events, validate against the last date
+    if (watchedIsMultipleDays && watchedAdditionalDates?.length > 0) {
+      // Find the last additional date
+      const validDates = watchedAdditionalDates
+        .filter((d) => d?.date)
+        .map((d) => new Date(d.date));
+
+      if (validDates.length > 0) {
+        lastEventDate = new Date(Math.max(...validDates));
+      }
+    }
+
+    // Setup must be before event (or last event date for multi-day)
+    if (setupDate >= lastEventDate) {
+      setFormError("setup_date", {
+        type: "manual",
+        message: "Setup must be before event date",
+      });
+    } else {
+      clearErrors("setup_date");
+    }
+
+    // Validate additional dates - chronological order + no duplicates
+    if (watchedIsMultipleDays && watchedAdditionalDates?.length > 0) {
+      let prevDate = eventDate;
+      let hasError = false;
+      let errorMessage = "";
+
+      // Check for duplicates with event_date
+      const allDates = [
+        eventDate,
+        ...watchedAdditionalDates
+          .filter((d) => d?.date)
+          .map((d) => new Date(d.date)),
+      ];
+      const uniqueDates = new Set(allDates.map((d) => d.toDateString()));
+      if (uniqueDates.size !== allDates.length) {
+        hasError = true;
+        errorMessage = "Cannot add same date twice";
       }
 
-      // Check: setup date must be before event date
-      if (setupDate >= lastEventDate) {
-        setFormError("setup_date", {
-          type: "manual",
-          message: "Setup date must be before the event date",
-        });
-      } else {
-        clearErrors("setup_date");
-      }
-
-      // Check: event date cannot be before setup date
-      if (eventDate <= setupDate) {
-        setFormError("event_date", {
-          type: "manual",
-          message: "Event date must be after the setup date",
-        });
-      } else {
-        clearErrors("event_date");
-      }
-
-      // Validate additional dates are in chronological order
-      if (watchedIsMultipleDays && watchedAdditionalDates?.length > 0) {
-        let prevDate = eventDate;
-        let hasDateError = false;
-
+      // Check chronological order
+      if (!hasError) {
         for (const addDate of watchedAdditionalDates) {
           if (addDate?.date) {
-            const currentDate = parseUaeDate(addDate.date);
+            const currentDate = new Date(addDate.date);
             if (currentDate <= prevDate) {
-              hasDateError = true;
+              hasError = true;
+              errorMessage = "Each date must be after the previous";
               break;
             }
             prevDate = currentDate;
           }
         }
+      }
 
-        if (hasDateError) {
-          setFormError("additional_dates", {
-            type: "manual",
-            message: "Additional dates must be in chronological order",
-          });
-        } else {
-          clearErrors("additional_dates");
-        }
+      if (hasError) {
+        setFormError("additional_dates", {
+          type: "manual",
+          message: errorMessage,
+        });
+      } else {
+        clearErrors("additional_dates");
       }
     }
   }, [
@@ -237,7 +237,6 @@ function CreateEvent() {
       const result = await createEvent(data, user.id);
 
       if (result.success) {
-        alert("Event created successfully!");
         window.history.back();
       } else {
         setFormMessage(result.error || "Failed to create event");
@@ -493,11 +492,10 @@ function CreateEvent() {
                 <label className={requiredLabelClass}>
                   Event Date{requiredStar}
                 </label>
-                <input
-                  type="date"
-                  {...register("event_date", {
-                    required: "Event date is required",
-                  })}
+                <DatePicker
+                  value={watch("event_date")}
+                  onChange={(date) => setValue("event_date", date)}
+                  placeholder="Select event date"
                   className={errors.event_date ? errorInputClass : inputClass}
                 />
                 {errors.event_date && (
@@ -513,11 +511,10 @@ function CreateEvent() {
                   <label className={requiredLabelClass}>
                     Event Start Date{requiredStar}
                   </label>
-                  <input
-                    type="date"
-                    {...register("event_date", {
-                      required: "Event start date is required",
-                    })}
+                  <DatePicker
+                    value={watch("event_date")}
+                    onChange={(date) => setValue("event_date", date)}
+                    placeholder="Select start date"
                     className={errors.event_date ? errorInputClass : inputClass}
                   />
                   {errors.event_date && (
@@ -526,28 +523,45 @@ function CreateEvent() {
                 </div>
 
                 {/* Additional Dates - Show when button clicked */}
-                {(additionalDates || []).map((additionalDate, index) => (
-                  <div key={index} className="flex gap-2 items-center">
-                    <div className="flex-1">
-                      <input
-                        type="date"
-                        value={additionalDate?.date || ""}
-                        onChange={(e) =>
-                          handleDateChange(index, e.target.value)
-                        }
-                        className={inputClass}
-                      />
+                {(additionalDates || []).map((additionalDate, index) => {
+                  // Get event_date from form for min date calculation
+                  const eventDateVal = watch("event_date");
+                  // Calculate min date - each additional date must be AFTER the previous date (not same day)
+                  const prevDate =
+                    index === 0
+                      ? eventDateVal
+                      : additionalDates[index - 1]?.date;
+
+                  // Add 1 day to previous date to require next day
+                  let minDateStr = prevDate || eventDateVal;
+                  if (minDateStr) {
+                    const prev = new Date(minDateStr);
+                    prev.setDate(prev.getDate() + 1);
+                    minDateStr = prev.toISOString().split("T")[0];
+                  }
+
+                  return (
+                    <div key={index} className="flex gap-2 items-center">
+                      <div className="flex-1">
+                        <DatePicker
+                          value={additionalDate?.date || ""}
+                          onChange={(date) => handleDateChange(index, date)}
+                          minDate={minDateStr}
+                          placeholder="Select date"
+                          className={inputClass}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="danger"
+                        onClick={() => handleRemoveDate(index)}
+                        className="px-3 shrink-0"
+                      >
+                        ✕
+                      </Button>
                     </div>
-                    <Button
-                      type="button"
-                      variant="danger"
-                      onClick={() => handleRemoveDate(index)}
-                      className="px-3 shrink-0"
-                    >
-                      ✕
-                    </Button>
-                  </div>
-                ))}
+                  );
+                })}
                 {/* Add Day Button */}
                 <Button
                   type="button"
@@ -583,11 +597,16 @@ function CreateEvent() {
               <label className={requiredLabelClass}>
                 Setup date{requiredStar}
               </label>
-              <input
-                type="datetime-local"
-                {...register("setup_date", {
-                  required: "Setup date is required",
-                })}
+              <DateTimePicker
+                value={watch("setup_date")}
+                onChange={(val) =>
+                  setValue("setup_date", val, { shouldValidate: true })
+                }
+                maxDate={
+                  watch("event_date")
+                    ? new Date(watch("event_date"))
+                    : undefined
+                }
                 className={errors.setup_date ? errorInputClass : inputClass}
               />
               {errors.setup_date && (
@@ -998,20 +1017,6 @@ function CreateEvent() {
               {errors.contact_email && (
                 <p className={errorClass}>{errors.contact_email.message}</p>
               )}
-            </div>
-            <div className="flex items-center pt-6">
-              <input
-                type="checkbox"
-                {...register("is_on_site")}
-                id="is_on_site"
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label
-                htmlFor="is_on_site"
-                className="ml-2 text-sm text-gray-700"
-              >
-                Is On Site
-              </label>
             </div>
           </div>
         </section>

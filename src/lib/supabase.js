@@ -56,6 +56,112 @@ export async function fetchRecentEvents(limit = 5) {
   }
 }
 
+// Fetch all events for PM Events page with pagination
+export async function fetchEvents(page = 1, limit = 20) {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  try {
+    const { data, error, count } = await supabase
+      .from("events")
+      .select("*", { count: "exact" })
+      .order("event_date", { ascending: true })
+      .range(from, to);
+
+    if (error) {
+      console.error("Error fetching events:", error);
+      return { success: false, error: error.message, events: [], total: 0 };
+    }
+
+    return { success: true, events: data || [], total: count || 0 };
+  } catch (err) {
+    console.error("Unexpected error fetching events:", err);
+    return { success: false, error: err.message, events: [], total: 0 };
+  }
+}
+
+// Fetch a single event by ID
+export async function fetchEventById(eventId) {
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("id", eventId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching event:", error);
+      return { success: false, error: error.message, event: null };
+    }
+
+    return { success: true, event: data };
+  } catch (err) {
+    console.error("Unexpected error fetching event:", err);
+    return { success: false, error: err.message, event: null };
+  }
+}
+
+// Fetch event counts for dashboard
+export async function fetchEventCounts() {
+  try {
+    // Get total count
+    const { count: total, error: totalError } = await supabase
+      .from("events")
+      .select("*", { count: "exact", head: true });
+
+    // Get confirmed count
+    const { count: confirmed, error: confirmedError } = await supabase
+      .from("events")
+      .select("*", { count: "exact", head: true })
+      .eq("job_status", "confirmed");
+
+    // Get completed count
+    const { count: completed, error: completedError } = await supabase
+      .from("events")
+      .select("*", { count: "exact", head: true })
+      .eq("job_status", "completed");
+
+    // Get pending count
+    const { count: pending, error: pendingError } = await supabase
+      .from("events")
+      .select("*", { count: "exact", head: true })
+      .eq("job_status", "pending");
+
+    if (totalError || confirmedError || completedError || pendingError) {
+      console.error(
+        "Error fetching event counts:",
+        totalError || confirmedError || completedError || pendingError,
+      );
+      return {
+        success: false,
+        error: "Failed to fetch counts",
+        total: 0,
+        confirmed: 0,
+        completed: 0,
+        pending: 0,
+      };
+    }
+
+    return {
+      success: true,
+      total: total || 0,
+      confirmed: confirmed || 0,
+      completed: completed || 0,
+      pending: pending || 0,
+    };
+  } catch (err) {
+    console.error("Unexpected error fetching event counts:", err);
+    return {
+      success: false,
+      error: err.message,
+      total: 0,
+      confirmed: 0,
+      completed: 0,
+      pending: 0,
+    };
+  }
+}
+
 // Fetch project managers from project_managers table
 export async function fetchProjectManagers() {
   try {
