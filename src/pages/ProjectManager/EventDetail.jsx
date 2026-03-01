@@ -4,6 +4,7 @@ import {
   fetchEventById,
   fetchEventTypes,
   fetchProjectManagers,
+  fetchEventAttachments,
 } from "../../lib/supabase";
 import Loader from "../../components/common/Loader";
 import { capitalizeFirstLetter } from "../../utils/utils";
@@ -13,6 +14,10 @@ function EventDetail() {
   const [event, setEvent] = useState(null);
   const [eventTypes, setEventTypes] = useState([]);
   const [projectManagers, setProjectManagers] = useState([]);
+  const [attachments, setAttachments] = useState({
+    floor_plan: [],
+    agenda: [],
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -31,6 +36,27 @@ function EventDetail() {
       if (isMounted) {
         if (eventResult.success) {
           setEvent(eventResult.event);
+
+          // Fetch attachments after event is loaded
+          if (isMounted) {
+            const attachmentsResult = await fetchEventAttachments(event_id);
+            if (isMounted) {
+              if (attachmentsResult.success) {
+                const floorPlans = attachmentsResult.attachments.filter(
+                  (a) => a.file_type === "floor_plan",
+                );
+                const agendas = attachmentsResult.attachments.filter(
+                  (a) => a.file_type === "agenda",
+                );
+                setAttachments({ floor_plan: floorPlans, agenda: agendas });
+              } else {
+                console.error(
+                  "Failed to load attachments:",
+                  attachmentsResult.error,
+                );
+              }
+            }
+          }
         } else {
           setError(eventResult.error);
         }
@@ -351,35 +377,55 @@ function EventDetail() {
       {/* Attachments */}
       <div className="bg-gray-50 rounded-xl p-5">
         <p className="text-base font-medium text-gray-900 mb-3">Attachments</p>
-        <div className="flex flex-wrap gap-2">
-          {event.file_floor_plan ? (
-            <a
-              href={event.file_floor_plan}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 text-base text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Floor Plan
-            </a>
-          ) : (
-            <span className="px-4 py-2 text-base text-gray-400 bg-gray-100 border border-gray-200 rounded-lg">
-              Floor Plan - Not Available
-            </span>
-          )}
-          {event.file_run_of_show ? (
-            <a
-              href={event.file_run_of_show}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 text-base text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Run of Show
-            </a>
-          ) : (
-            <span className="px-4 py-2 text-base text-gray-400 bg-gray-100 border border-gray-200 rounded-lg">
-              Run of Show - Not Available
-            </span>
-          )}
+
+        {/* Floor Plans */}
+        <div className="mb-4">
+          <p className="text-sm font-medium text-gray-700 mb-2">Floor Plans</p>
+          <div className="flex flex-wrap gap-2">
+            {attachments.floor_plan.length > 0 ? (
+              attachments.floor_plan.map((attachment) => (
+                <a
+                  key={attachment.id}
+                  href={attachment.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 text-base text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  {attachment.file_name}
+                </a>
+              ))
+            ) : (
+              <span className="px-4 py-2 text-base text-gray-400 bg-gray-100 border border-gray-200 rounded-lg">
+                No floor plans uploaded
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Agendas */}
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-2">
+            Agenda / Run of Show
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {attachments.agenda.length > 0 ? (
+              attachments.agenda.map((attachment) => (
+                <a
+                  key={attachment.id}
+                  href={attachment.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 text-base text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  {attachment.file_name}
+                </a>
+              ))
+            ) : (
+              <span className="px-4 py-2 text-base text-gray-400 bg-gray-100 border border-gray-200 rounded-lg">
+                No agendas uploaded
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

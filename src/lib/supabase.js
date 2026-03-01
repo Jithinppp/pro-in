@@ -348,7 +348,6 @@ export async function createEvent(eventData, userId) {
         event_id: eventId,
         date_order: index + 2,
         event_date: date.date,
-        notes: date.notes || null,
       }));
 
       const { error: datesError } = await supabase
@@ -419,6 +418,110 @@ export async function createEvent(eventData, userId) {
     return { success: true, event };
   } catch (err) {
     console.error("Unexpected error creating event:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+// Upload file to Supabase Storage
+export async function uploadFile(
+  file,
+  bucketName = "event_attachment_bucket",
+  folder = "",
+  jobId = "",
+  sequence = "",
+) {
+  try {
+    // Format: jobId-img-01, jobId-img-02, etc.
+    const fileName = folder + jobId + "-img-" + sequence + "-" + file.name;
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .upload(fileName, file);
+
+    if (error) {
+      console.error("Error uploading file:", error);
+      return { success: false, error: error.message, url: null };
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(fileName);
+
+    return { success: true, url: urlData.publicUrl };
+  } catch (err) {
+    console.error("Unexpected error uploading file:", err);
+    return { success: false, error: err.message, url: null };
+  }
+}
+
+// Upload multiple files and save to event_attachments table
+export async function uploadEventAttachments(
+  eventId,
+  files,
+  fileType,
+  jobId = "",
+) {
+  try {
+    const attachments = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      // Sequence number: 01, 02, 03, etc.
+      const sequence = String(i + 1).padStart(2, "0");
+
+      const result = await uploadFile(
+        file,
+        "event_attachment_bucket",
+        fileType + "/",
+        jobId,
+        sequence,
+      );
+
+      if (result.success) {
+        attachments.push({
+          event_id: eventId,
+          file_type: fileType,
+          file_url: result.url,
+          file_name: file.name,
+        });
+      }
+    }
+
+    if (attachments.length > 0) {
+      const { error } = await supabase
+        .from("event_attachments")
+        .insert(attachments);
+
+      if (error) {
+        console.error("Error saving attachments:", error);
+        return { success: false, error: error.message };
+      }
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+// Fetch attachments for an event
+export async function fetchEventAttachments(eventId) {
+  try {
+    const { data, error } = await supabase
+      .from("event_attachments")
+      .select("*")
+      .eq("event_id", eventId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching attachments:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, attachments: data };
+  } catch (err) {
+    console.error("Unexpected error:", err);
     return { success: false, error: err.message };
   }
 }

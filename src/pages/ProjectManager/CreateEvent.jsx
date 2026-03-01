@@ -8,6 +8,7 @@ import {
   fetchProjectManagers,
   fetchEventTypes,
   fetchLastJobId,
+  uploadEventAttachments,
 } from "../../lib/supabase";
 import { AuthContext } from "../../contexts/AuthContext";
 
@@ -64,8 +65,8 @@ function CreateEvent() {
       contact_email: "",
 
       // Attachments
-      file_floor_plan: "",
-      file_run_of_show: "",
+      floor_plans: [],
+      agendas: [],
     },
   });
 
@@ -263,6 +264,44 @@ function CreateEvent() {
       const result = await createEvent(data, user.id);
 
       if (result.success) {
+        const eventId = result.event.id;
+        const jobId = result.event.job_id;
+        let uploadError = null;
+
+        // Upload floor plans
+        if (data.floor_plans && data.floor_plans.length > 0) {
+          const floorPlanResult = await uploadEventAttachments(
+            eventId,
+            data.floor_plans,
+            "floor_plan",
+            jobId,
+          );
+          if (!floorPlanResult.success) {
+            uploadError = "Failed to upload floor plan files";
+          }
+        }
+
+        // Upload agendas (run of show) - only if floor plans succeeded
+        if (!uploadError && data.agendas && data.agendas.length > 0) {
+          const agendaResult = await uploadEventAttachments(
+            eventId,
+            data.agendas,
+            "agenda",
+            jobId,
+          );
+          if (!agendaResult.success) {
+            uploadError = "Failed to upload agenda files";
+          }
+        }
+
+        if (uploadError) {
+          setFormMessage(
+            uploadError +
+              ". Event was created but attachments failed to upload.",
+          );
+          return;
+        }
+
         window.history.back();
       } else {
         setFormMessage(result.error || "Failed to create event");
@@ -283,7 +322,7 @@ function CreateEvent() {
   const handleDateChange = (index, value) => {
     const currentDates = watch("additional_dates") || [];
     const newDates = [...currentDates];
-    newDates[index] = { date: value };
+    newDates[index] = { ...newDates[index], date: value };
     setValue("additional_dates", newDates);
   };
 
@@ -349,12 +388,6 @@ function CreateEvent() {
       {formMessage && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
           {formMessage}
-        </div>
-      )}
-
-      {loading && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-700">
-          Creating event...
         </div>
       )}
 
@@ -567,24 +600,26 @@ function CreateEvent() {
                   }
 
                   return (
-                    <div key={index} className="flex gap-2 items-center">
-                      <div className="flex-1">
-                        <DatePicker
-                          value={additionalDate?.date || ""}
-                          onChange={(date) => handleDateChange(index, date)}
-                          minDate={minDateStr}
-                          placeholder="Select date"
-                          className={inputClass}
-                        />
+                    <div key={index} className="space-y-2">
+                      <div className="flex gap-2 items-center">
+                        <div className="flex-1">
+                          <DatePicker
+                            value={additionalDate?.date || ""}
+                            onChange={(date) => handleDateChange(index, date)}
+                            minDate={minDateStr}
+                            placeholder="Select date"
+                            className={inputClass}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="danger"
+                          onClick={() => handleRemoveDate(index)}
+                          className="px-3 shrink-0"
+                        >
+                          ✕
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="danger"
-                        onClick={() => handleRemoveDate(index)}
-                        className="px-3 shrink-0"
-                      >
-                        ✕
-                      </Button>
                     </div>
                   );
                 })}
@@ -1068,45 +1103,44 @@ function CreateEvent() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Floor Plan File</label>
+              <label className={labelClass}>Floor Plan Files</label>
               <input
-                type="url"
-                {...register("file_floor_plan", {
-                  pattern: {
-                    value: /^https?:\/\/.+/i,
-                    message: "Invalid URL",
-                  },
-                })}
-                placeholder="Link to CAD/PDF/IMG of room layout"
-                className={
-                  errors.file_floor_plan ? errorInputClass : inputClass
-                }
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.dwg"
+                onChange={(e) => {
+                  setValue("floor_plans", Array.from(e.target.files));
+                }}
+                className={inputClass}
               />
-              {errors.file_floor_plan && (
-                <p className={errorClass}>{errors.file_floor_plan.message}</p>
-              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Select multiple files (PDF, images, CAD)
+              </p>
             </div>
             <div>
-              <label className={labelClass}>Run of Show File</label>
+              <label className={labelClass}>Agenda / Run of Show Files</label>
               <input
-                type="url"
-                {...register("file_run_of_show", {
-                  pattern: {
-                    value: /^https?:\/\/.+/i,
-                    message: "Invalid URL",
-                  },
-                })}
-                placeholder="Link to schedule/AGENDA"
-                className={
-                  errors.file_run_of_show ? errorInputClass : inputClass
-                }
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                onChange={(e) => {
+                  setValue("agendas", Array.from(e.target.files));
+                }}
+                className={inputClass}
               />
-              {errors.file_run_of_show && (
-                <p className={errorClass}>{errors.file_run_of_show.message}</p>
-              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Select multiple files (PDF, documents)
+              </p>
             </div>
           </div>
         </section>
+
+        {/* Loading Indicator */}
+        {loading && (
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-700">
+            Creating event and uploading attachments...
+          </div>
+        )}
 
         {/* Submit Buttons */}
         <div className="flex gap-3 pt-4 ">
