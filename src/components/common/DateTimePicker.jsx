@@ -23,7 +23,7 @@ export default function DateTimePicker({
     return null;
   };
 
-  const [selectedDate, setSelectedDate] = useState(getInitialDate);
+  const [selectedDate, setSelectedDate] = useState(() => getInitialDate());
   const [selectedTime, setSelectedTime] = useState(() => {
     if (value) {
       const date = new Date(value);

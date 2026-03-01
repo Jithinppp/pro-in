@@ -72,15 +72,15 @@ function Layout() {
             </div>
 
             {/* Right side - Back button and Logout (stacks on mobile) */}
-            <div className="shrink-0 flex flex-row items-center gap-3 mt-3 sm:mt-0">
+            <div className="shrink-0 flex flex-row items-center gap-2 mt-3 sm:mt-0">
               {isNestedRoute() && (
                 <Button
                   onClick={handleGoBack}
                   variant="secondary"
-                  className="py-2! px-4!"
+                  className="py-1.5 px-3 text-sm!"
                 >
                   <svg
-                    className="h-4 w-4 mr-2"
+                    className="h-3.5 w-3.5 mr-1.5"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -98,10 +98,10 @@ function Layout() {
               <Button
                 onClick={handleLogout}
                 variant="danger"
-                className="py-2! px-4!"
+                className="py-1.5 px-3 text-sm!"
               >
                 <svg
-                  className="h-4 w-4 mr-2"
+                  className="h-3.5 w-3.5 mr-1.5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"

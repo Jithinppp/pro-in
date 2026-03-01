@@ -55,7 +55,7 @@ function EventDetail() {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
       year: "numeric",
-      month: "long",
+      month: "short",
       day: "numeric",
     });
   }
@@ -65,7 +65,7 @@ function EventDetail() {
     const date = new Date(dateString);
     return date.toLocaleString("en-US", {
       year: "numeric",
-      month: "long",
+      month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
@@ -93,9 +93,7 @@ function EventDetail() {
   if (error) {
     return (
       <div className="p-6">
-        <div className="p-4 bg-red-50 rounded-lg">
-          <p className="text-red-600">{error}</p>
-        </div>
+        <p className="text-red-500">{error}</p>
       </div>
     );
   }
@@ -103,166 +101,253 @@ function EventDetail() {
   if (!event) {
     return (
       <div className="p-6">
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">Event not found.</p>
-        </div>
+        <p className="text-gray-500">Event not found</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {event.event_name}
-            </h1>
-            <p className="text-gray-500 mt-1">
-              Job ID: {event.job_id || "N/A"}
-            </p>
-          </div>
+    <div className="p-6 max-w-6xl mx-auto space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-semibold text-gray-900">
+            {event.event_name}
+          </h1>
           <span
-            className={`px-4 py-1.5 text-sm font-medium rounded-full ${getStatusColor(
+            className={`px-2.5 py-1 text-sm font-medium rounded-full ${getStatusColor(
               event.job_status,
             )}`}
           >
             {event.job_status || "pending"}
           </span>
         </div>
-
-        {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Basic Info */}
-          <div className="bg-gray-50 rounded-xl p-5">
-            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">
-              Event Details
-            </h3>
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs text-gray-400">Event Type</p>
-                <p className="text-gray-900 font-medium">
-                  {getEventTypeName(event.event_type)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400">Client Type</p>
-                <p className="text-gray-900 capitalize">{event.client_type}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400">Client Name</p>
-                <p className="text-gray-900">{event.client_name}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Dates */}
-          <div className="bg-gray-50 rounded-xl p-5">
-            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">
-              Schedule
-            </h3>
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs text-gray-400">Event Date</p>
-                <p className="text-gray-900 font-medium">
-                  {formatDate(event.event_date)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400">Setup Date</p>
-                <p className="text-gray-900">
-                  {formatDateTime(event.setup_date)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400">Multiple Days</p>
-                <p className="text-gray-900">
-                  {event.is_multiple_days ? "Yes" : "No"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Contact */}
-          <div className="bg-gray-50 rounded-xl p-5">
-            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">
-              Contact
-            </h3>
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs text-gray-400">Name</p>
-                <p className="text-gray-900 font-medium">
-                  {event.contact_name}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400">Role</p>
-                <p className="text-gray-900">{event.contact_role}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400">Mobile</p>
-                <p className="text-gray-900">{event.contact_mobile}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Description */}
-        {event.description && (
-          <div className="bg-gray-50 rounded-xl p-5">
-            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">
-              Description
-            </h3>
-            <p className="text-gray-700">{event.description}</p>
-          </div>
-        )}
-
-        {/* Attachments */}
-        <div className="bg-gray-50 rounded-xl p-5">
-          <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">
-            Attachments
-          </h3>
-          <div className="flex gap-6">
-            <div>
-              <p className="text-xs text-gray-400 mb-1">Floor Plan</p>
-              {event.file_floor_plan ? (
-                <a
-                  href={event.file_floor_plan}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  View File
-                </a>
-              ) : (
-                <p className="text-gray-400">None</p>
-              )}
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 mb-1">Run of Show</p>
-              {event.file_run_of_show ? (
-                <a
-                  href={event.file_run_of_show}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  View File
-                </a>
-              ) : (
-                <p className="text-gray-400">None</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <p className="text-sm text-gray-400 text-center">
-          Created {formatDateTime(event.created_at)} • Updated{" "}
-          {formatDateTime(event.updated_at)}
+        <p className="text-base text-gray-500">
+          {event.job_id || "No Job ID"} • Created{" "}
+          {formatDateTime(event.created_at)}
         </p>
       </div>
+
+      {/* Info Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Card 1: Event Type & Client */}
+        <div className="bg-gray-50 rounded-xl p-5">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Event Type</p>
+              <p className="text-base font-medium text-gray-900">
+                {getEventTypeName(event.event_type)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Client</p>
+              <p className="text-base font-medium text-gray-900">
+                {event.client_name}
+              </p>
+              <p className="text-sm text-gray-500 capitalize">
+                {event.client_type}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Contact & Phone */}
+        <div className="bg-gray-50 rounded-xl p-5">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Contact</p>
+              <p className="text-base font-medium text-gray-900">
+                {event.contact_name}
+              </p>
+              <p className="text-sm text-gray-500">{event.contact_role}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Phone</p>
+              <p className="text-base font-medium text-gray-900">
+                {event.contact_mobile}
+              </p>
+              {event.contact_email && (
+                <p className="text-sm text-gray-500 truncate">
+                  {event.contact_email}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Dates & Venues */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Dates */}
+        <div className="bg-gray-50 rounded-xl p-5">
+          <p className="text-base font-medium text-gray-900 mb-3">Dates</p>
+          <div className="space-y-2">
+            {event.event_dates && event.event_dates.length > 0 ? (
+              event.event_dates.map((date, index) => (
+                <div
+                  key={date.id || index}
+                  className="flex items-center justify-between py-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 text-sm font-medium bg-gray-200 text-gray-700 rounded">
+                      Day {date.date_order}
+                    </span>
+                    <span className="text-base text-gray-700">
+                      {formatDate(date.event_date)}
+                    </span>
+                  </div>
+                  <span className="text-sm text-gray-400">{date.notes}</span>
+                </div>
+              ))
+            ) : (
+              <div className="flex items-center gap-2 py-2">
+                <span className="px-2.5 py-1 text-sm font-medium bg-gray-200 text-gray-700 rounded">
+                  Day 1
+                </span>
+                <span className="text-base text-gray-700">
+                  {formatDate(event.event_date)}
+                </span>
+              </div>
+            )}
+            {event.setup_date && (
+              <div className="flex items-center gap-2 py-2">
+                <span className="px-2.5 py-1 text-sm font-medium bg-amber-100 text-amber-700 rounded">
+                  SET
+                </span>
+                <span className="text-base text-gray-500">
+                  Setup: {formatDateTime(event.setup_date)}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Venues */}
+        <div className="bg-gray-50 rounded-xl p-5">
+          <p className="text-base font-medium text-gray-900 mb-3">Venues</p>
+          {event.event_venues && event.event_venues.length > 0 ? (
+            <div className="space-y-4">
+              {event.event_venues.map((venue, index) => (
+                <div key={venue.id || index} className="py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-gray-900">
+                      {venue.venue_name || `Venue ${venue.venue_order}`}
+                    </span>
+                    <span className="text-sm text-gray-400">
+                      Venue {venue.venue_order}
+                    </span>
+                  </div>
+                  {venue.hall_name && (
+                    <p className="text-sm text-gray-500 mb-2">
+                      {venue.hall_name}
+                    </p>
+                  )}
+                  {venue.venue_address && (
+                    <div className="mb-2">
+                      <p className="text-sm text-gray-500 mb-2">
+                        {venue.venue_address}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={venue.venue_address}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                            />
+                          </svg>
+                          Open in Google Maps
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigator.clipboard.writeText(venue.venue_address)
+                          }
+                          className="p-1.5 text-gray-500 hover:text-gray-700"
+                          title="Copy address"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {venue.pax && (
+                    <p className="text-sm text-gray-400">{venue.pax} guests</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">No venues added</p>
+          )}
+        </div>
+      </div>
+
+      {/* Description */}
+      {event.description && (
+        <div className="bg-gray-50 rounded-xl p-5">
+          <p className="text-base font-medium text-gray-900 mb-2">
+            Description
+          </p>
+          <p className="text-base text-gray-600 leading-relaxed">
+            {event.description}
+          </p>
+        </div>
+      )}
+
+      {/* Attachments */}
+      {(event.file_floor_plan || event.file_run_of_show) && (
+        <div className="bg-gray-50 rounded-xl p-5">
+          <p className="text-base font-medium text-gray-900 mb-3">
+            Attachments
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {event.file_floor_plan && (
+              <a
+                href={event.file_floor_plan}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 text-base text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Floor Plan
+              </a>
+            )}
+            {event.file_run_of_show && (
+              <a
+                href={event.file_run_of_show}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 text-base text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Run of Show
+              </a>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

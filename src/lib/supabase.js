@@ -83,7 +83,8 @@ export async function fetchEvents(page = 1, limit = 20) {
 // Fetch a single event by ID
 export async function fetchEventById(eventId) {
   try {
-    const { data, error } = await supabase
+    // Fetch event
+    const { data: event, error } = await supabase
       .from("events")
       .select("*")
       .eq("id", eventId)
@@ -94,7 +95,37 @@ export async function fetchEventById(eventId) {
       return { success: false, error: error.message, event: null };
     }
 
-    return { success: true, event: data };
+    // Fetch event dates from event_dates table
+    const { data: eventDates, error: datesError } = await supabase
+      .from("event_dates")
+      .select("*")
+      .eq("event_id", eventId)
+      .order("date_order", { ascending: true });
+
+    if (datesError) {
+      console.error("Error fetching event dates:", datesError);
+    }
+
+    // Fetch event venues from event_venues table
+    const { data: eventVenues, error: venuesError } = await supabase
+      .from("event_venues")
+      .select("*")
+      .eq("event_id", eventId)
+      .order("venue_order", { ascending: true });
+
+    if (venuesError) {
+      console.error("Error fetching event venues:", venuesError);
+    }
+
+    // Attach dates and venues to event object
+    return {
+      success: true,
+      event: {
+        ...event,
+        event_dates: eventDates || [],
+        event_venues: eventVenues || [],
+      },
+    };
   } catch (err) {
     console.error("Unexpected error fetching event:", err);
     return { success: false, error: err.message, event: null };
@@ -279,7 +310,6 @@ export async function createEvent(eventData, userId) {
         contact_role: eventData.contact_role,
         contact_mobile: eventData.contact_mobile,
         contact_email: eventData.contact_email,
-        is_on_site: eventData.is_on_site,
         file_floor_plan: eventData.file_floor_plan,
         file_run_of_show: eventData.file_run_of_show,
         user_id: userId,
@@ -294,6 +324,46 @@ export async function createEvent(eventData, userId) {
     }
 
     const eventId = event.id;
+
+    // Insert primary event date into event_dates table (date_order = 1)
+    if (eventData.event_date) {
+      const { error: primaryDateError } = await supabase
+        .from("event_dates")
+        .insert({
+          event_id: eventId,
+          date_order: 1,
+          event_date: eventData.event_date,
+        });
+
+      if (primaryDateError) {
+        console.error("Error creating primary date:", primaryDateError);
+        await supabase.from("events").delete().eq("id", eventId);
+        return { success: false, error: primaryDateError.message };
+      }
+    }
+
+    // Insert additional dates into event_dates table
+    if (eventData.additional_dates && eventData.additional_dates.length > 0) {
+      const datesToInsert = eventData.additional_dates.map((date, index) => ({
+        event_id: eventId,
+        date_order: index + 2,
+        event_date: date.date,
+        notes: date.notes || null,
+      }));
+
+      const { error: datesError } = await supabase
+        .from("event_dates")
+        .insert(datesToInsert);
+
+      if (datesError) {
+        console.error("Error creating additional dates:", datesError);
+        // Rollback: Delete the event and all related data
+        await supabase.from("event_dates").delete().eq("event_id", eventId);
+        await supabase.from("event_venues").delete().eq("event_id", eventId);
+        await supabase.from("events").delete().eq("id", eventId);
+        return { success: false, error: datesError.message };
+      }
+    }
 
     // Insert first venue (from main fields)
     const { error: venueError } = await supabase.from("event_venues").insert({
@@ -343,32 +413,6 @@ export async function createEvent(eventData, userId) {
           additionalVenuesError,
         );
         return { success: false, error: additionalVenuesError.message };
-      }
-    }
-
-    // Insert additional dates for multi-day events
-    if (
-      eventData.is_multiple_days &&
-      eventData.additional_dates &&
-      eventData.additional_dates.length > 0
-    ) {
-      const datesToInsert = eventData.additional_dates.map((date, index) => ({
-        event_id: eventId,
-        date_order: index + 2,
-        event_date: date.date,
-        notes: date.notes,
-      }));
-
-      const { error: datesError } = await supabase
-        .from("event_dates")
-        .insert(datesToInsert);
-
-      if (datesError) {
-        console.error("Error creating additional dates:", datesError);
-        // Rollback: Delete the event and all related venues
-        await supabase.from("event_venues").delete().eq("event_id", eventId);
-        await supabase.from("events").delete().eq("id", eventId);
-        return { success: false, error: datesError.message };
       }
     }
 

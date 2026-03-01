@@ -233,6 +233,32 @@ function CreateEvent() {
     setLoading(true);
     setFormMessage(null);
 
+    // Validate additional venues if multiple venues is enabled
+    if (data.is_multiple_venues && data.additional_venues) {
+      const requiredVenueFields = [
+        "venue_name",
+        "hall_name",
+        "venue_address",
+        "pax",
+        "loading_dock_notes",
+        "safety_precautions",
+        "security_access",
+      ];
+
+      for (let i = 0; i < data.additional_venues.length; i++) {
+        const venue = data.additional_venues[i];
+        for (const field of requiredVenueFields) {
+          if (!venue[field] || venue[field].toString().trim() === "") {
+            setFormMessage(
+              `Venue ${i + 2}: ${field.replace(/_/g, " ")} is required`,
+            );
+            setLoading(false);
+            return;
+          }
+        }
+      }
+    }
+
     try {
       const result = await createEvent(data, user.id);
 
@@ -738,7 +764,7 @@ function CreateEvent() {
             </div>
             <div>
               <label className={requiredLabelClass}>
-                Security Access ID/Badge Required{requiredStar}
+                Security Access{requiredStar}
               </label>
               <select
                 {...register("security_access", {
@@ -798,7 +824,9 @@ function CreateEvent() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className={labelClass}>Venue Name</label>
+                        <label className={requiredLabelClass}>
+                          Venue Name{requiredStar}
+                        </label>
                         <input
                           type="text"
                           value={venue?.venue_name || ""}
@@ -814,7 +842,9 @@ function CreateEvent() {
                         />
                       </div>
                       <div>
-                        <label className={labelClass}>Hall Name</label>
+                        <label className={requiredLabelClass}>
+                          Hall Name{requiredStar}
+                        </label>
                         <input
                           type="text"
                           value={venue?.hall_name || ""}
@@ -830,7 +860,9 @@ function CreateEvent() {
                         />
                       </div>
                       <div className="md:col-span-2">
-                        <label className={labelClass}>Venue Address</label>
+                        <label className={requiredLabelClass}>
+                          Venue Address{requiredStar}
+                        </label>
                         <input
                           type="text"
                           value={venue?.venue_address || ""}
@@ -846,8 +878,8 @@ function CreateEvent() {
                         />
                       </div>
                       <div>
-                        <label className={labelClass}>
-                          Pax (Number of Guests)
+                        <label className={requiredLabelClass}>
+                          Pax (Number of Guests){requiredStar}
                         </label>
                         <input
                           type="number"
@@ -860,8 +892,8 @@ function CreateEvent() {
                         />
                       </div>
                       <div>
-                        <label className={labelClass}>
-                          Loading Dock Details
+                        <label className={requiredLabelClass}>
+                          Loading Dock Details{requiredStar}
                         </label>
                         <textarea
                           value={venue?.loading_dock_notes || ""}
@@ -878,7 +910,9 @@ function CreateEvent() {
                         />
                       </div>
                       <div>
-                        <label className={labelClass}>Safety Precautions</label>
+                        <label className={requiredLabelClass}>
+                          Safety Precautions{requiredStar}
+                        </label>
                         <select
                           value={venue?.safety_precautions || ""}
                           onChange={(e) =>
@@ -897,8 +931,7 @@ function CreateEvent() {
                       </div>
                       <div>
                         <label className={labelClass}>Parking Passes</label>
-                        <input
-                          type="number"
+                        <select
                           value={venue?.parking_passes || ""}
                           onChange={(e) =>
                             handleVenueChange(
@@ -907,14 +940,18 @@ function CreateEvent() {
                               e.target.value,
                             )
                           }
-                          placeholder="Number of truck/crew spots"
                           className={inputClass}
-                        />
+                        >
+                          <option value="">Select Option</option>
+                          <option value="available">Available</option>
+                          <option value="not_available">Not Available</option>
+                        </select>
                       </div>
                       <div>
-                        <label className={labelClass}>Security Access</label>
-                        <input
-                          type="text"
+                        <label className={requiredLabelClass}>
+                          Security Access{requiredStar}
+                        </label>
+                        <select
                           value={venue?.security_access || ""}
                           onChange={(e) =>
                             handleVenueChange(
@@ -923,9 +960,12 @@ function CreateEvent() {
                               e.target.value,
                             )
                           }
-                          placeholder="Badge requirements"
                           className={inputClass}
-                        />
+                        >
+                          <option value="">Select Option</option>
+                          <option value="yes">Yes</option>
+                          <option value="no">No</option>
+                        </select>
                       </div>
                     </div>
                   </div>

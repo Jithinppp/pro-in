@@ -174,7 +174,7 @@ function PMEvents() {
                     </div>
                     <p className="text-sm text-gray-500">{event.client_name}</p>
                   </div>
-                  <div className="text-right flex-shrink-0">
+                  <div className="text-right shrink-0">
                     <p className="text-sm font-medium text-gray-900">
                       {formatDate(event.event_date)}
                     </p>
