@@ -12,7 +12,7 @@ function Button({
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "0.5rem 1rem",
+    padding: "0.5rem 2rem",
     fontSize: "0.875rem",
     fontWeight: "500",
     borderRadius: "0.375rem",
