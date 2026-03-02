@@ -37,6 +37,7 @@ import AddInventory from "./pages/Inventory/AddInventory";
 import AddCategory from "./pages/Inventory/AddCategory";
 import AddModel from "./pages/Inventory/AddModel";
 import UpdateInventory from "./pages/Inventory/UpdateInventory";
+import EquipmentDetail from "./pages/Inventory/EquipmentDetail";
 
 function App() {
   const { user, loading, role } = useContext(AuthContext);
@@ -213,6 +214,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles="inv">
               <UpdateInventory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/inv/equipment/:id"
+          element={
+            <ProtectedRoute allowedRoles="inv">
+              <EquipmentDetail />
             </ProtectedRoute>
           }
         />
