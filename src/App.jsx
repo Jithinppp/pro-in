@@ -34,8 +34,9 @@ import TechEquipments from "./pages/Tech/TechEquipments";
 import Inventory from "./pages/Inventory/Inventory";
 import InvEquipments from "./pages/Inventory/InvEquipments";
 import AddInventory from "./pages/Inventory/AddInventory";
+import AddCategory from "./pages/Inventory/AddCategory";
+import AddModel from "./pages/Inventory/AddModel";
 import UpdateInventory from "./pages/Inventory/UpdateInventory";
-import DeleteInventory from "./pages/Inventory/DeleteInventory";
 
 function App() {
   const { user, loading, role } = useContext(AuthContext);
@@ -184,7 +185,7 @@ function App() {
           }
         />
         <Route
-          path="/inv/add"
+          path="/inv/add-inventory"
           element={
             <ProtectedRoute allowedRoles="inv">
               <AddInventory />
@@ -192,18 +193,26 @@ function App() {
           }
         />
         <Route
-          path="/inv/update"
+          path="/inv/add-category"
           element={
             <ProtectedRoute allowedRoles="inv">
-              <UpdateInventory />
+              <AddCategory />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/inv/delete"
+          path="/inv/add-model"
           element={
             <ProtectedRoute allowedRoles="inv">
-              <DeleteInventory />
+              <AddModel />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/inv/update-inventory/:id"
+          element={
+            <ProtectedRoute allowedRoles="inv">
+              <UpdateInventory />
             </ProtectedRoute>
           }
         />

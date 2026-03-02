@@ -255,7 +255,7 @@ function EventDetail() {
                 )}
                 {venue.pax && (
                   <div className="flex items-center gap-1.5 mt-5">
-                    <span className="px-2.5 py-1 text-sm font-medium bg-green-500   text-white rounded">
+                    <span className="px-2.5 py-1 text-sm font-medium border-b">
                       {venue.pax} Guests (PAX)
                     </span>
                     {/* <p className="text-md  text-gray-700">{venue.pax}</p> */}

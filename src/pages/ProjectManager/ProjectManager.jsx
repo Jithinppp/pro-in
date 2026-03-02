@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Outlet, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { fetchRecentEvents, fetchEventCounts } from "../../lib/supabase";
 
 function ProjectManager() {
@@ -12,6 +12,7 @@ function ProjectManager() {
     completed: 0,
     pending: 0,
   });
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadData = async () => {
     setLoading(true);
@@ -56,131 +57,189 @@ function ProjectManager() {
     }
   };
 
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case "confirmed":
+        return (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        );
+      case "completed":
+        return (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        );
+      case "cancelled":
+        return (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        );
+      case "pending":
+      default:
+        return (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        );
+    }
+  };
+
+  const filteredEvents = events.filter((event) =>
+    (event.event_name || event.job_id || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       {/* Quick Stats - Top */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Total</p>
-          <p className="text-2xl font-semibold text-gray-900">{stats.total}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs md:text-sm text-gray-500">Total Events</p>
+              <p className="text-xl md:text-2xl font-semibold text-gray-900">{stats.total}</p>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+              <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          </div>
         </div>
+
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Pending</p>
-          <p className="text-2xl font-semibold text-gray-900">
-            {stats.pending}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs md:text-sm text-gray-500">Pending</p>
+              <p className="text-xl md:text-2xl font-semibold text-yellow-600">{stats.pending}</p>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center">
+              <svg className="w-5 h-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
         </div>
+
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Confirmed</p>
-          <p className="text-2xl font-semibold text-gray-900">
-            {stats.confirmed}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs md:text-sm text-gray-500">Confirmed</p>
+              <p className="text-xl md:text-2xl font-semibold text-green-600">{stats.confirmed}</p>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+              <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
         </div>
+
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Completed</p>
-          <p className="text-2xl font-semibold text-gray-900">
-            {stats.completed}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs md:text-sm text-gray-500">Completed</p>
+              <p className="text-xl md:text-2xl font-semibold text-blue-600">{stats.completed}</p>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+              <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Action Buttons - Compact horizontal row */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        {/* Create Event */}
+      {/* Action Buttons */}
+      <div className="flex flex-wrap gap-2 md:gap-3 mb-6">
         <Link to="create-event">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <svg
-              className="w-4 h-4 text-blue-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
+          <button className="flex items-center gap-2 px-3 md:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            <span className="text-sm font-medium text-gray-700">
-              Create Event
-            </span>
+            <span className="font-medium">Create Event</span>
           </button>
         </Link>
 
-        {/* Reports */}
-        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-          <svg
-            className="w-4 h-4 text-blue-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
+        <Link to="events">
+          <button className="flex items-center gap-2 px-3 md:px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span className="font-medium text-gray-700">All Events</span>
+          </button>
+        </Link>
+
+        <button className="flex items-center gap-2 px-3 md:px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+          <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <span className="text-sm font-medium text-gray-700">Reports</span>
+          <span className="font-medium text-gray-700">Reports</span>
         </button>
 
-        {/* Search Equipment */}
-        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-          <svg
-            className="w-4 h-4 text-blue-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
+        <button className="flex items-center gap-2 px-3 md:px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+          <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <span className="text-sm font-medium text-gray-700">
-            Search Equipment
-          </span>
+          <span className="font-medium text-gray-700">Search Equipment</span>
         </button>
       </div>
 
-      {/* Task List Section */}
+      {/* Search Bar */}
+      <div className="mb-6">
+        <div className="relative">
+          <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search events..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          />
+        </div>
+      </div>
+
+      {/* Events List */}
       <div className="bg-white rounded-lg border border-gray-200">
+        <div className="p-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Recent Events</h2>
+        </div>
+
         <div className="p-4">
           {loading ? (
             <p className="text-gray-500 text-center py-4">Loading events...</p>
           ) : error ? (
             <p className="text-red-500 text-center py-4">Error: {error}</p>
-          ) : events.length === 0 ? (
+          ) : filteredEvents.length === 0 ? (
             <p className="text-gray-500 text-center py-4">No events found</p>
           ) : (
             <div className="space-y-3">
-              {events.map((event) => (
+              {filteredEvents.map((event) => (
                 <Link
                   key={event.id}
                   to={`events/${event.id}`}
                   className="block"
                 >
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
-                    <div className="flex items-center gap-4">
-                      <div className="w-1 h-12 rounded-full bg-blue-500"></div>
-                      <div>
-                        <p className="text-base font-semibold text-gray-900">
+                  <div className="flex items-center justify-between p-3 md:p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                    <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                      <div className="w-1 h-10 md:h-12 rounded-full bg-blue-500 flex-shrink-0"></div>
+                      <div className="min-w-0">
+                        <p className="text-sm md:text-base font-semibold text-gray-900 truncate">
                           {event.event_name || event.job_id}
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-xs md:text-sm text-gray-500">
                           {event.event_date || "No date set"}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`px-3 py-1.5 text-sm font-medium rounded-full ${getStatusColor(event.job_status)}`}
-                      >
-                        {event.job_status || "pending"}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`flex items-center gap-1.5 px-2.5 py-1 text-xs md:text-sm font-medium rounded-full ${getStatusColor(event.job_status)}`}>
+                        {getStatusIcon(event.job_status)}
+                        <span className="hidden sm:inline">{event.job_status || "pending"}</span>
                       </span>
                     </div>
                   </div>
@@ -194,7 +253,7 @@ function ProjectManager() {
         <div className="border-t border-gray-200 p-4">
           <Link to="events">
             <button className="w-full py-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">
-              See More →
+              See All Events →
             </button>
           </Link>
         </div>

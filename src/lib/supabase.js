@@ -525,3 +525,279 @@ export async function fetchEventAttachments(eventId) {
     return { success: false, error: err.message };
   }
 }
+
+// ==================== INVENTORY FUNCTIONS ====================
+
+// Fetch all categories
+export async function fetchCategories() {
+  try {
+    const { data, error } = await supabase
+      .from("categories")
+      .select("*")
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching categories:", error);
+      return { success: false, error: error.message, categories: [] };
+    }
+
+    return { success: true, categories: data || [] };
+  } catch (err) {
+    console.error("Unexpected error fetching categories:", err);
+    return { success: false, error: err.message, categories: [] };
+  }
+}
+
+// Fetch models by category ID
+export async function fetchModelsByCategory(categoryId) {
+  try {
+    const { data, error } = await supabase
+      .from("models")
+      .select("*")
+      .eq("category_id", categoryId)
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching models:", error);
+      return { success: false, error: error.message, models: [] };
+    }
+
+    return { success: true, models: data || [] };
+  } catch (err) {
+    console.error("Unexpected error fetching models:", err);
+    return { success: false, error: err.message, models: [] };
+  }
+}
+
+// Fetch all models
+export async function fetchAllModels() {
+  try {
+    const { data, error } = await supabase
+      .from("models")
+      .select("*, categories(name, code)")
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching models:", error);
+      return { success: false, error: error.message, models: [] };
+    }
+
+    return { success: true, models: data || [] };
+  } catch (err) {
+    console.error("Unexpected error fetching models:", err);
+    return { success: false, error: err.message, models: [] };
+  }
+}
+
+// Get next asset sequence for a category + brand combination
+export async function getAssetSequence(categoryCode, brandCode) {
+  try {
+    const prefix = `${categoryCode}-${brandCode}-`;
+
+    const { data, error } = await supabase
+      .from("assets")
+      .select("asset_code")
+      .like("asset_code", `${prefix}%`)
+      .order("asset_code", { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error("Error fetching sequence:", error);
+      return { success: false, error: error.message, sequence: 1 };
+    }
+
+    let nextSequence = 1;
+    if (data && data.length > 0) {
+      const lastCode = data[0].asset_code;
+      const lastSeq = parseInt(lastCode.split("-")[2], 10);
+      nextSequence = isNaN(lastSeq) ? 1 : lastSeq + 1;
+    }
+
+    return { success: true, sequence: nextSequence };
+  } catch (err) {
+    console.error("Unexpected error fetching sequence:", err);
+    return { success: false, error: err.message, sequence: 1 };
+  }
+}
+
+// Fetch assets with pagination and search
+export async function fetchAssets(page = 1, limit = 20, searchQuery = "") {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  try {
+    let query = supabase
+      .from("assets")
+      .select("*, models(id, name, brand, brand_code, categories(id, name, code))", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (searchQuery) {
+      query = query.or(`asset_code.ilike.%${searchQuery}%,serial_number.ilike.%${searchQuery}%,invoice_number.ilike.%${searchQuery}%`);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error("Error fetching assets:", error);
+      return { success: false, error: error.message, assets: [], total: 0 };
+    }
+
+    return { success: true, assets: data || [], total: count || 0 };
+  } catch (err) {
+    console.error("Unexpected error fetching assets:", err);
+    return { success: false, error: err.message, assets: [], total: 0 };
+  }
+}
+
+// Fetch asset by ID
+export async function fetchAssetById(assetId) {
+  try {
+    const { data, error } = await supabase
+      .from("assets")
+      .select("*, models(id, name, brand, brand_code, categories(id, name, code))")
+      .eq("id", assetId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching asset:", error);
+      return { success: false, error: error.message, asset: null };
+    }
+
+    return { success: true, asset: data };
+  } catch (err) {
+    console.error("Unexpected error fetching asset:", err);
+    return { success: false, error: err.message, asset: null };
+  }
+}
+
+// Create new asset with auto-generated code
+export async function createAsset(assetData) {
+  try {
+    // Get category and model info to build asset code
+    const { data: modelData, error: modelError } = await supabase
+      .from("models")
+      .select("*, categories(code)")
+      .eq("id", assetData.models_id)
+      .single();
+
+    if (modelError || !modelData) {
+      console.error("Error fetching model:", modelError);
+      return { success: false, error: "Model not found" };
+    }
+
+    const categoryCode = modelData.categories?.code || "UNK";
+    const brandCode = modelData.brand_code || "XXX";
+
+    // Get next sequence
+    const seqResult = await getAssetSequence(categoryCode, brandCode);
+    const sequence = seqResult.sequence.toString().padStart(3, "000");
+    const assetCode = `${categoryCode}-${brandCode}-${sequence}`;
+
+    // Insert asset
+    const { data, error } = await supabase
+      .from("assets")
+      .insert([
+        {
+          models_id: assetData.models_id,
+          asset_code: assetCode,
+          serial_number: assetData.serial_number || null,
+          supplier_name: assetData.supplier_name || null,
+          invoice_number: assetData.invoice_number || null,
+          purchase_date: assetData.purchase_date || null,
+          purchase_price: assetData.purchase_price || null,
+          description: assetData.description || null,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating asset:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, asset: data };
+  } catch (err) {
+    console.error("Unexpected error creating asset:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+// Update asset
+export async function updateAsset(assetId, assetData) {
+  try {
+    const { data, error } = await supabase
+      .from("assets")
+      .update({
+        models_id: assetData.models_id,
+        serial_number: assetData.serial_number || null,
+        supplier_name: assetData.supplier_name || null,
+        invoice_number: assetData.invoice_number || null,
+        purchase_date: assetData.purchase_date || null,
+        purchase_price: assetData.purchase_price || null,
+        description: assetData.description || null,
+      })
+      .eq("id", assetId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating asset:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, asset: data };
+  } catch (err) {
+    console.error("Unexpected error updating asset:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+// Delete asset
+export async function deleteAsset(assetId) {
+  try {
+    const { error } = await supabase
+      .from("assets")
+      .delete()
+      .eq("id", assetId);
+
+    if (error) {
+      console.error("Error deleting asset:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Unexpected error deleting asset:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+// Fetch inventory stats (counts)
+export async function fetchInventoryStats() {
+  try {
+    const { data, error } = await supabase
+      .from("assets")
+      .select("*");
+
+    if (error) {
+      console.error("Error fetching stats:", error);
+      return { success: false, error: error.message };
+    }
+
+    const total = data?.length || 0;
+    // Since there's no status field, we'll just show total
+    const available = total;
+    const inUse = 0;
+    const lowStock = 0;
+
+    return {
+      success: true,
+      stats: { total, available, inUse, lowStock },
+    };
+  } catch (err) {
+    console.error("Unexpected error fetching stats:", err);
+    return { success: false, error: err.message, stats: { total: 0, available: 0, inUse: 0, lowStock: 0 } };
+  }
+}
