@@ -108,8 +108,7 @@ function AddInventory() {
 
         const nextSequence = seqResult.sequence
           .toString()
-          .padStart(3, "000")
-          .slice(-3);
+          .padStart(4, "0");
         const fullCode = `${selectedCategory.code}-${selectedModel.brand_code}-${nextSequence}`;
         setPreviewCode(fullCode);
         console.log("Generated asset_code:", fullCode);
@@ -161,12 +160,22 @@ function AddInventory() {
     <div className="p-4 md:p-6">
       <div className="bg-white rounded-lg border border-gray-200 max-w-full">
         <div className="p-4 border-b border-gray-200">
-          <h1 className="text-xl font-semibold text-gray-900">
-            Add New Inventory Item
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Select category and model to auto-generate asset code
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">
+                Add New Inventory Item
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Select category and model to auto-generate asset code
+              </p>
+            </div>
+            <Link
+              to="/inv/bulk-import"
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+            >
+              Import from CSV
+            </Link>
+          </div>
           {previewCode && (
             <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-700">

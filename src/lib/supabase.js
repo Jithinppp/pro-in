@@ -743,7 +743,7 @@ export async function createAsset(assetData) {
     const seqResult = await getAssetSequence(categoryCode, brandCode);
     console.log("getAssetSequence result:", seqResult);
 
-    const sequence = seqResult.sequence.toString().padStart(3, "000");
+    const sequence = seqResult.sequence.toString().padStart(4, "0");
     const assetCode = `${categoryCode}-${brandCode}-${sequence}`;
     console.log("4. Generated asset_code:", assetCode);
 
@@ -774,6 +774,93 @@ export async function createAsset(assetData) {
     return { success: true, asset: data };
   } catch (err) {
     console.error("Unexpected error creating asset:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+// Bulk create assets from CSV data
+export async function createBulkAssets(csvData, categoryId, modelId, onProgress) {
+  console.log("=== createBulkAssets FUNCTION ===");
+  console.log("CSV data count:", csvData.length);
+  console.log("categoryId:", categoryId, "modelId:", modelId);
+
+  try {
+    // Get category and model info
+    console.log("Fetching model info from: models table");
+    const { data: modelData, error: modelError } = await supabase
+      .from("models")
+      .select("*, categories(code)")
+      .eq("id", modelId)
+      .single();
+
+    if (modelError || !modelData) {
+      console.error("Error fetching model:", modelError);
+      return { success: false, error: "Model not found" };
+    }
+
+    const categoryCode = modelData.categories?.code || "UNK";
+    const brandCode = modelData.brand_code || "XXX";
+    console.log("categoryCode:", categoryCode, "brandCode:", brandCode);
+
+    // Get current max sequence
+    console.log("Getting current sequence from: assets table");
+    const seqResult = await getAssetSequence(categoryCode, brandCode);
+    let currentSequence = seqResult.sequence;
+    console.log("Starting sequence:", currentSequence);
+
+    // Process in batches of 500 (Supabase limit is 1000)
+    const batchSize = 500;
+    let insertedCount = 0;
+    const totalBatches = Math.ceil(csvData.length / batchSize);
+
+    for (let i = 0; i < csvData.length; i += batchSize) {
+      const batch = csvData.slice(i, i + batchSize);
+      const batchNumber = Math.floor(i / batchSize) + 1;
+      console.log(`Processing batch ${batchNumber}/${totalBatches}`);
+
+      // Generate asset codes for this batch
+      const assetsToInsert = batch.map((row) => {
+        const sequence = currentSequence.toString().padStart(4, "0");
+        const assetCode = `${categoryCode}-${brandCode}-${sequence}`;
+        currentSequence++;
+
+        return {
+          models_id: modelId,
+          asset_code: assetCode,
+          serial_number: row.serial_number || null,
+          supplier_name: row.supplier_name || null,
+          invoice_number: row.invoice_number || null,
+          purchase_date: row.purchase_date || null,
+          purchase_price: row.purchase_price ? parseFloat(row.purchase_price) : null,
+          description: row.description || null,
+        };
+      });
+
+      console.log("Inserting batch of:", assetsToInsert.length, "assets");
+
+      // Bulk insert
+      const { error: insertError } = await supabase
+        .from("assets")
+        .insert(assetsToInsert);
+
+      if (insertError) {
+        console.error("Error inserting batch:", insertError);
+        return { success: false, error: `Error inserting batch ${batchNumber}: ${insertError.message}` };
+      }
+
+      insertedCount += batch.length;
+      const progress = Math.round((insertedCount / csvData.length) * 100);
+      console.log("Progress:", progress, "%");
+
+      if (onProgress) {
+        onProgress(progress);
+      }
+    }
+
+    console.log("Bulk import complete! Total inserted:", insertedCount);
+    return { success: true, count: insertedCount };
+  } catch (err) {
+    console.error("Unexpected error in bulk import:", err);
     return { success: false, error: err.message };
   }
 }

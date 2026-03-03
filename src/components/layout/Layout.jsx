@@ -55,7 +55,7 @@ function Layout() {
     <div className="min-h-screen">
       {/* Navbar */}
       <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl  mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center h-auto sm:h-20 py-3 sm:py-0">
             {/* Left side - Welcome message and Date */}
             <div className="shrink-0">
