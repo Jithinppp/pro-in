@@ -591,6 +591,8 @@ export async function fetchAllModels() {
 
 // Get next asset sequence for a category + brand combination
 export async function getAssetSequence(categoryCode, brandCode) {
+  console.log("=== getAssetSequence FUNCTION ===");
+  console.log("Searching assets table with prefix:", `${categoryCode}-${brandCode}-`);
   try {
     const prefix = `${categoryCode}-${brandCode}-`;
 
@@ -601,6 +603,8 @@ export async function getAssetSequence(categoryCode, brandCode) {
       .order("asset_code", { ascending: false })
       .limit(1);
 
+    console.log("assets table query result:", data);
+
     if (error) {
       console.error("Error fetching sequence:", error);
       return { success: false, error: error.message, sequence: 1 };
@@ -609,8 +613,13 @@ export async function getAssetSequence(categoryCode, brandCode) {
     let nextSequence = 1;
     if (data && data.length > 0) {
       const lastCode = data[0].asset_code;
+      console.log("Last asset_code found:", lastCode);
       const lastSeq = parseInt(lastCode.split("-")[2], 10);
+      console.log("Extracted sequence number:", lastSeq);
       nextSequence = isNaN(lastSeq) ? 1 : lastSeq + 1;
+      console.log("Next sequence will be:", nextSequence);
+    } else {
+      console.log("No existing assets found, starting with sequence: 1");
     }
 
     return { success: true, sequence: nextSequence };
@@ -708,6 +717,8 @@ export async function fetchAssetById(assetId) {
 
 // Create new asset with auto-generated code
 export async function createAsset(assetData) {
+  console.log("=== createAsset FUNCTION ===");
+  console.log("1. Fetching from: models table (to get category code)");
   try {
     // Get category and model info to build asset code
     const { data: modelData, error: modelError } = await supabase
@@ -721,14 +732,22 @@ export async function createAsset(assetData) {
       return { success: false, error: "Model not found" };
     }
 
+    console.log("models table result:", modelData);
+
     const categoryCode = modelData.categories?.code || "UNK";
     const brandCode = modelData.brand_code || "XXX";
+    console.log("2. categoryCode:", categoryCode, ", brandCode:", brandCode);
 
     // Get next sequence
+    console.log("3. Calling getAssetSequence (fetches from: assets table)");
     const seqResult = await getAssetSequence(categoryCode, brandCode);
+    console.log("getAssetSequence result:", seqResult);
+
     const sequence = seqResult.sequence.toString().padStart(3, "000");
     const assetCode = `${categoryCode}-${brandCode}-${sequence}`;
+    console.log("4. Generated asset_code:", assetCode);
 
+    console.log("5. Inserting into: assets table");
     // Insert asset
     const { data, error } = await supabase
       .from("assets")

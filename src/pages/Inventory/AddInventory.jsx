@@ -49,7 +49,9 @@ function AddInventory() {
 
   const loadCategories = async () => {
     setCategoriesLoading(true);
+    console.log("=== FETCHING FROM: categories table ===");
     const result = await fetchCategories();
+    console.log("categories table result:", result);
     if (result.success) {
       setCategories(result.categories);
     }
@@ -64,7 +66,10 @@ function AddInventory() {
     setPreviewCode("");
 
     if (categoryId) {
+      console.log("=== FETCHING FROM: models table ===");
+      console.log("category_id:", categoryId);
       const result = await fetchModelsByCategory(categoryIdNum);
+      console.log("models table result:", result);
       if (result.success) {
         setModels(result.models);
       }
@@ -91,16 +96,23 @@ function AddInventory() {
       );
 
       if (selectedCategory && selectedModel) {
+        console.log("=== FETCHING SEQUENCE FROM: assets table ===");
+        console.log("category_code:", selectedCategory.code);
+        console.log("brand_code:", selectedModel.brand_code);
+
         const seqResult = await getAssetSequence(
           selectedCategory.code,
           selectedModel.brand_code,
         );
+        console.log("getAssetSequence result:", seqResult);
+
         const nextSequence = seqResult.sequence
           .toString()
           .padStart(3, "000")
           .slice(-3);
         const fullCode = `${selectedCategory.code}-${selectedModel.brand_code}-${nextSequence}`;
         setPreviewCode(fullCode);
+        console.log("Generated asset_code:", fullCode);
       }
     } else {
       setPreviewCode("");
@@ -108,6 +120,7 @@ function AddInventory() {
   };
 
   const onSubmit = async (data) => {
+    console.log("=== CREATING NEW ASSET ===");
     console.log("Form data:", data);
     setIsSubmitting(true);
     setSubmitError("");
@@ -130,8 +143,10 @@ function AddInventory() {
     };
 
     console.log("Asset data to create:", assetData);
+    console.log("=== CALLING: createAsset (uses models table for category info, then assets table for insert) ===");
 
     const result = await createAsset(assetData);
+    console.log("createAsset result:", result);
 
     if (result.success) {
       navigate("/inv/equipments");
