@@ -443,6 +443,102 @@ export async function createEvent(eventData, userId) {
   }
 }
 
+// Update an existing event
+export async function updateEvent(eventId, eventData, userId) {
+  try {
+    // Update main event
+    const { data: event, error: eventError } = await supabase
+      .from("events")
+      .update({
+        event_name: eventData.event_name,
+        description: eventData.description,
+        client_name: eventData.client_name,
+        client_type: eventData.client_type,
+        event_type: eventData.event_type,
+        project_manager_id: eventData.project_manager_id,
+        job_status: eventData.job_status,
+        setup_date: eventData.setup_date,
+        event_date: eventData.event_date,
+        contact_name: eventData.contact_name,
+        contact_role: eventData.contact_role,
+        contact_mobile: eventData.contact_mobile,
+        contact_email: eventData.contact_email,
+        file_floor_plan: eventData.file_floor_plan,
+        file_run_of_show: eventData.file_run_of_show,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", eventId)
+      .select()
+      .single();
+
+    if (eventError) {
+      console.error("Error updating event:", eventError);
+      return { success: false, error: eventError.message };
+    }
+
+    // Delete existing dates and re-insert
+    await supabase.from("event_dates").delete().eq("event_id", eventId);
+
+    // Insert primary event date
+    if (eventData.event_date) {
+      await supabase.from("event_dates").insert({
+        event_id: eventId,
+        date_order: 1,
+        event_date: eventData.event_date,
+      });
+    }
+
+    // Insert additional dates
+    if (eventData.additional_dates && eventData.additional_dates.length > 0) {
+      const datesToInsert = eventData.additional_dates.map((date, index) => ({
+        event_id: eventId,
+        date_order: index + 2,
+        event_date: date.date,
+      }));
+      await supabase.from("event_dates").insert(datesToInsert);
+    }
+
+    // Delete existing venues and re-insert
+    await supabase.from("event_venues").delete().eq("event_id", eventId);
+
+    // Insert primary venue
+    await supabase.from("event_venues").insert({
+      event_id: eventId,
+      venue_order: 1,
+      venue_name: eventData.venue_name,
+      hall_name: eventData.hall_name,
+      venue_address: eventData.venue_address,
+      pax: eventData.pax ? parseInt(eventData.pax) : null,
+      loading_dock_notes: eventData.loading_dock_notes,
+      safety_precautions: eventData.safety_precautions,
+      parking_passes: eventData.parking_passes || null,
+      security_access: eventData.security_access,
+    });
+
+    // Insert additional venues
+    if (eventData.additional_venues && eventData.additional_venues.length > 0) {
+      const venuesToInsert = eventData.additional_venues.map((venue, index) => ({
+        event_id: eventId,
+        venue_order: index + 2,
+        venue_name: venue.venue_name,
+        hall_name: venue.hall_name,
+        venue_address: venue.venue_address,
+        pax: venue.pax ? parseInt(venue.pax) : null,
+        loading_dock_notes: venue.loading_dock_notes,
+        safety_precautions: venue.safety_precautions,
+        parking_passes: venue.parking_passes || null,
+        security_access: venue.security_access,
+      }));
+      await supabase.from("event_venues").insert(venuesToInsert);
+    }
+
+    return { success: true, event };
+  } catch (err) {
+    console.error("Unexpected error updating event:", err);
+    return { success: false, error: err.message };
+  }
+}
+
 // Upload file to Supabase Storage
 export async function uploadFile(
   file,

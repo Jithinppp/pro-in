@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   fetchEventById,
   fetchEventTypes,
@@ -11,6 +11,7 @@ import { capitalizeFirstLetter } from "../../utils/utils";
 
 function EventDetail() {
   const { event_id } = useParams();
+  const navigate = useNavigate();
   const [event, setEvent] = useState(null);
   const [eventTypes, setEventTypes] = useState([]);
   const [projectManagers, setProjectManagers] = useState([]);
@@ -166,6 +167,15 @@ function EventDetail() {
           >
             {event.job_status || "pending"}
           </span>
+          <button
+            onClick={() => navigate(`/pm/edit-event/${event_id}`)}
+            className="p-1.5 text-gray-500 hover:text-blue-600"
+            title="Edit event"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          </button>
         </div>
         <p className="text-base text-gray-500">
           {event.job_id || "No Job ID"} • Created{" "}

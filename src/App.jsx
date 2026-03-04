@@ -20,6 +20,7 @@ import Unauthorized from "./pages/Unauthorized";
 // PM Pages
 import ProjectManager from "./pages/ProjectManager/ProjectManager";
 import CreateEvent from "./pages/ProjectManager/CreateEvent";
+import EditEvent from "./pages/ProjectManager/EditEvent";
 import AddEventType from "./pages/ProjectManager/AddEventType";
 import Reports from "./pages/ProjectManager/Reports";
 import PMEvents from "./pages/ProjectManager/PMEvents";
@@ -128,6 +129,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles="pm">
               <EventDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pm/edit-event/:event_id"
+          element={
+            <ProtectedRoute allowedRoles="pm">
+              <EditEvent />
             </ProtectedRoute>
           }
         />

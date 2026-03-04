@@ -76,6 +76,11 @@ function PMEvents() {
     navigate(`/pm/events/${eventId}`);
   }
 
+  function handleEditClick(e, eventId) {
+    e.stopPropagation();
+    navigate(`/pm/edit-event/${eventId}`);
+  }
+
   function formatDate(dateString) {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
@@ -135,13 +140,24 @@ function PMEvents() {
                     <h3 className="font-medium text-gray-900">
                       {event.event_name}
                     </h3>
-                    <span
-                      className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColor(
-                        event.job_status,
-                      )}`}
-                    >
-                      {event.job_status || "pending"}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => handleEditClick(e, event.id)}
+                        className="p-1 text-gray-500 hover:text-blue-600"
+                        title="Edit event"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                      <span
+                        className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColor(
+                          event.job_status,
+                        )}`}
+                      >
+                        {event.job_status || "pending"}
+                      </span>
+                    </div>
                   </div>
                   <p className="text-sm text-gray-500">
                     Job: {event.job_id || "N/A"}
@@ -174,13 +190,24 @@ function PMEvents() {
                     </div>
                     <p className="text-sm text-gray-500">{event.client_name}</p>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-medium text-gray-900">
-                      {formatDate(event.event_date)}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {getEventTypeName(event.event_type)}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-medium text-gray-900">
+                        {formatDate(event.event_date)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {getEventTypeName(event.event_type)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => handleEditClick(e, event.id)}
+                      className="p-1.5 text-gray-500 hover:text-blue-600"
+                      title="Edit event"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               </div>

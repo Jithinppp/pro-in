@@ -428,9 +428,10 @@ function CreateEvent() {
                 <label className={labelClass}>Description</label>
                 <textarea
                   {...register("description")}
-                  rows={3}
+                  rows={4}
                   placeholder="Event description or notes"
                   className={inputClass}
+                  style={{ minHeight: "100px" }}
                 />
               </div>
               <div>
