@@ -20,6 +20,7 @@ import Unauthorized from "./pages/Unauthorized";
 // PM Pages
 import ProjectManager from "./pages/ProjectManager/ProjectManager";
 import CreateEvent from "./pages/ProjectManager/CreateEvent";
+import AddEventType from "./pages/ProjectManager/AddEventType";
 import Reports from "./pages/ProjectManager/Reports";
 import PMEvents from "./pages/ProjectManager/PMEvents";
 import PMEquipments from "./pages/ProjectManager/PMEquipments";
@@ -135,6 +136,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles="pm">
               <PMEquipments />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pm/event-types"
+          element={
+            <ProtectedRoute allowedRoles="pm">
+              <AddEventType />
             </ProtectedRoute>
           }
         />

@@ -233,6 +233,27 @@ export async function fetchEventTypes() {
   }
 }
 
+// Create a new event type
+export async function createEventType(name, description) {
+  try {
+    const { data, error } = await supabase
+      .from("event_types")
+      .insert([{ name, description }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating event type:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, eventType: data };
+  } catch (err) {
+    console.error("Unexpected error creating event type:", err);
+    return { success: false, error: err.message };
+  }
+}
+
 // Fetch the last event's job_id to generate next sequence
 export async function fetchLastJobId() {
   try {

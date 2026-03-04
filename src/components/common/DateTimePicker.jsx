@@ -7,6 +7,8 @@ export default function DateTimePicker({
   value,
   onChange,
   maxDate,
+  minDate,
+  disabled = false,
   placeholder = "Select date and time",
   className = "",
 }) {
@@ -64,20 +66,24 @@ export default function DateTimePicker({
   if (maxDate) {
     disabledDays.push({ after: new Date(maxDate) });
   }
+  if (minDate) {
+    disabledDays.push({ before: new Date(minDate) });
+  }
 
   return (
     <div className="relative">
       <input
         type="text"
         readOnly
+        disabled={disabled}
         value={
           selectedDate
             ? `${format(selectedDate, "MMM dd, yyyy")} ${selectedTime}`
             : ""
         }
         placeholder={placeholder}
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-full px-3 py-2 border border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`w-full px-3 py-2 border border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${disabled ? "bg-gray-100 cursor-not-allowed" : ""} ${className}`}
       />
 
       {isOpen && (

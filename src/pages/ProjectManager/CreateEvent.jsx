@@ -1,5 +1,6 @@
 import { useState, useContext, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import Button from "../../components/common/Button";
 import DatePicker from "../../components/common/DatePicker";
 import DateTimePicker from "../../components/common/DateTimePicker";
@@ -20,6 +21,7 @@ function CreateEvent() {
   const [baseJobId, setBaseJobId] = useState(""); // Stores job_id with XX placeholder
 
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const {
     register,
@@ -234,8 +236,8 @@ function CreateEvent() {
     setLoading(true);
     setFormMessage(null);
 
-    // Validate additional venues if multiple venues is enabled
-    if (data.is_multiple_venues && data.additional_venues) {
+    // Validate additional venues if there are any additional venues
+    if (data.additional_venues && data.additional_venues.length > 0) {
       const requiredVenueFields = [
         "venue_name",
         "hall_name",
@@ -297,7 +299,7 @@ function CreateEvent() {
         if (uploadError) {
           setFormMessage(
             uploadError +
-              ". Event was created but attachments failed to upload.",
+            ". Event was created but attachments failed to upload.",
           );
           return;
         }
@@ -482,6 +484,13 @@ function CreateEvent() {
                     </option>
                   ))}
                 </select>
+                <button
+                  type="button"
+                  onClick={() => navigate("/pm/event-types")}
+                  className="text-sm text-blue-600 hover:text-blue-800 hover:underline mt-1"
+                >
+                  Add event type
+                </button>
                 {errors.event_type && (
                   <p className={errorClass}>{errors.event_type.message}</p>
                 )}
@@ -540,117 +549,75 @@ function CreateEvent() {
               Time and Dates
             </h2>
             <div className="space-y-4">
-              {/* Single Day - Default */}
-              {!isMultipleDays && (
-                <div>
-                  <label className={requiredLabelClass}>
-                    Event Date{requiredStar}
-                  </label>
-                  <DatePicker
-                    value={watch("event_date")}
-                    onChange={(date) => setValue("event_date", date)}
-                    placeholder="Select event date"
-                    className={errors.event_date ? errorInputClass : inputClass}
-                  />
-                  {errors.event_date && (
-                    <p className={errorClass}>{errors.event_date.message}</p>
-                  )}
-                </div>
-              )}
-
-              {/* Multiple Day */}
-              {isMultipleDays && (
-                <div className="space-y-4">
-                  <div>
-                    <label className={requiredLabelClass}>
-                      Event Start Date{requiredStar}
-                    </label>
-                    <DatePicker
-                      value={watch("event_date")}
-                      onChange={(date) => setValue("event_date", date)}
-                      placeholder="Select start date"
-                      className={
-                        errors.event_date ? errorInputClass : inputClass
-                      }
-                    />
-                    {errors.event_date && (
-                      <p className={errorClass}>{errors.event_date.message}</p>
-                    )}
-                  </div>
-
-                  {/* Additional Dates - Show when button clicked */}
-                  {(additionalDates || []).map((additionalDate, index) => {
-                    // Get event_date from form for min date calculation
-                    const eventDateVal = watch("event_date");
-                    // Calculate min date - each additional date must be AFTER the previous date (not same day)
-                    const prevDate =
-                      index === 0
-                        ? eventDateVal
-                        : additionalDates[index - 1]?.date;
-
-                    // Add 1 day to previous date to require next day
-                    let minDateStr = prevDate || eventDateVal;
-                    if (minDateStr) {
-                      const prev = new Date(minDateStr);
-                      prev.setDate(prev.getDate() + 1);
-                      minDateStr = prev.toISOString().split("T")[0];
-                    }
-
-                    return (
-                      <div key={index} className="space-y-2">
-                        <div className="flex gap-2 items-center">
-                          <div className="flex-1">
-                            <DatePicker
-                              value={additionalDate?.date || ""}
-                              onChange={(date) => handleDateChange(index, date)}
-                              minDate={minDateStr}
-                              placeholder="Select date"
-                              className={inputClass}
-                            />
-                          </div>
-                          <Button
-                            type="button"
-                            variant="danger"
-                            onClick={() => handleRemoveDate(index)}
-                            className="px-3 shrink-0"
-                          >
-                            ✕
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {/* Add Day Button */}
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleAddDate}
-                    className="text-sm"
-                  >
-                    + Add Day
-                  </Button>
-                </div>
-              )}
-
-              {/* Single/Multiple Day Toggle */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    {...register("is_multiple_days")}
-                    id="is_multiple_days"
-                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <label
-                    htmlFor="is_multiple_days"
-                    className="ml-2 text-sm text-gray-700"
-                  >
-                    Multiple Day Event
-                  </label>
-                </div>
+              {/* Event Date - Always visible */}
+              <div>
+                <label className={requiredLabelClass}>
+                  Event Date{requiredStar}
+                </label>
+                <DatePicker
+                  value={watch("event_date")}
+                  onChange={(date) => setValue("event_date", date)}
+                  placeholder="Select event date"
+                  className={errors.event_date ? errorInputClass : inputClass}
+                />
+                {errors.event_date && (
+                  <p className={errorClass}>{errors.event_date.message}</p>
+                )}
               </div>
 
-              {/* Setup date */}
+              {/* Additional Dates - Show when button clicked */}
+              {(additionalDates || []).map((additionalDate, index) => {
+                // Get event_date from form for min date calculation
+                const eventDateVal = watch("event_date");
+                // Calculate min date - each additional date must be AFTER the previous date (not same day)
+                const prevDate =
+                  index === 0
+                    ? eventDateVal
+                    : additionalDates[index - 1]?.date;
+
+                // Add 1 day to previous date to require next day
+                let minDateStr = prevDate || eventDateVal;
+                if (minDateStr) {
+                  const prev = new Date(minDateStr);
+                  prev.setDate(prev.getDate() + 1);
+                  minDateStr = prev.toISOString().split("T")[0];
+                }
+
+                return (
+                  <div key={index} className="space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <div className="flex-1">
+                        <DatePicker
+                          value={additionalDate?.date || ""}
+                          onChange={(date) => handleDateChange(index, date)}
+                          minDate={minDateStr}
+                          placeholder="Select date"
+                          className={inputClass}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="danger"
+                        onClick={() => handleRemoveDate(index)}
+                        className="px-3 shrink-0"
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Add Day Button - Full width, always visible */}
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleAddDate}
+                className="w-full text-sm mt-6"
+              >
+                + Add Another Day
+              </Button>
+
+              {/* Setup date - Disabled until event_date is filled */}
               <div>
                 <label className={requiredLabelClass}>
                   Setup date{requiredStar}
@@ -660,13 +627,19 @@ function CreateEvent() {
                   onChange={(val) =>
                     setValue("setup_date", val, { shouldValidate: true })
                   }
+                  disabled={!watch("event_date")}
                   maxDate={
                     watch("event_date")
                       ? new Date(watch("event_date"))
                       : undefined
                   }
-                  className={errors.setup_date ? errorInputClass : inputClass}
+                  className={`${errors.setup_date ? errorInputClass : inputClass} ${!watch("event_date") ? "bg-gray-100 cursor-not-allowed" : ""}`}
                 />
+                {!watch("event_date") && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Please select an event date first
+                  </p>
+                )}
                 {errors.setup_date && (
                   <p className={errorClass}>{errors.setup_date.message}</p>
                 )}
@@ -770,11 +743,11 @@ function CreateEvent() {
               </div>
               <div>
                 <label className={requiredLabelClass}>
-                  Safety Precautions{requiredStar}
+                  Safety Equipments{requiredStar}
                 </label>
                 <select
                   {...register("safety_precautions", {
-                    required: "Safety precautions is required",
+                    required: "Safety equipments is required",
                   })}
                   className={
                     errors.safety_precautions ? errorInputClass : inputClass
@@ -800,11 +773,11 @@ function CreateEvent() {
               </div>
               <div>
                 <label className={requiredLabelClass}>
-                  Security Access{requiredStar}
+                  ID/Pass needed{requiredStar}
                 </label>
                 <select
                   {...register("security_access", {
-                    required: "Security access is required",
+                    required: "ID/Pass needed is required",
                   })}
                   className={
                     errors.security_access ? errorInputClass : inputClass
@@ -819,203 +792,183 @@ function CreateEvent() {
                 )}
               </div>
 
-              {/* Multiple Venues Toggle */}
-              <div className="md:col-span-2 flex items-center gap-4 pt-4 border-t border-gray-200">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    {...register("is_multiple_venues")}
-                    id="is_multiple_venues"
-                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <label
-                    htmlFor="is_multiple_venues"
-                    className="ml-2 text-sm text-gray-700"
+              {/* Additional Venues - Always visible */}
+              <div className="md:col-span-2 space-y-6 pt-4">
+                {(additionalVenues || []).map((venue, index) => (
+                  <div
+                    key={index}
+                    className="p-4 bg-gray-50 rounded-lg space-y-4"
                   >
-                    Multiple Venues
-                  </label>
-                </div>
-              </div>
-
-              {/* Additional Venues */}
-              {isMultipleVenues && (
-                <div className="md:col-span-2 space-y-6 pt-4">
-                  {(additionalVenues || []).map((venue, index) => (
-                    <div
-                      key={index}
-                      className="p-4 bg-gray-50 rounded-lg space-y-4"
-                    >
-                      <div className="flex justify-between items-center">
-                        <h3 className="text-sm font-medium text-gray-700">
-                          Venue {index + 2}
-                        </h3>
-                        <Button
-                          type="button"
-                          variant="danger"
-                          onClick={() => handleRemoveVenue(index)}
-                          className="px-2 py-1 text-sm"
-                        >
-                          Remove
-                        </Button>
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-sm font-medium text-gray-700">
+                        Venue {index + 2}
+                      </h3>
+                      <Button
+                        type="button"
+                        variant="danger"
+                        onClick={() => handleRemoveVenue(index)}
+                        className="px-2 py-1 text-sm"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className={requiredLabelClass}>
+                          Venue Name{requiredStar}
+                        </label>
+                        <input
+                          type="text"
+                          value={venue?.venue_name || ""}
+                          onChange={(e) =>
+                            handleVenueChange(
+                              index,
+                              "venue_name",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Name of Hotel/Convention Center"
+                          className={inputClass}
+                        />
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className={requiredLabelClass}>
-                            Venue Name{requiredStar}
-                          </label>
-                          <input
-                            type="text"
-                            value={venue?.venue_name || ""}
-                            onChange={(e) =>
-                              handleVenueChange(
-                                index,
-                                "venue_name",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Name of Hotel/Convention Center"
-                            className={inputClass}
-                          />
-                        </div>
-                        <div>
-                          <label className={requiredLabelClass}>
-                            Hall Name{requiredStar}
-                          </label>
-                          <input
-                            type="text"
-                            value={venue?.hall_name || ""}
-                            onChange={(e) =>
-                              handleVenueChange(
-                                index,
-                                "hall_name",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Specific Room or Ballroom"
-                            className={inputClass}
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className={requiredLabelClass}>
-                            Venue Address{requiredStar}
-                          </label>
-                          <input
-                            type="text"
-                            value={venue?.venue_address || ""}
-                            onChange={(e) =>
-                              handleVenueChange(
-                                index,
-                                "venue_address",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Full physical address"
-                            className={inputClass}
-                          />
-                        </div>
-                        <div>
-                          <label className={requiredLabelClass}>
-                            Pax (Number of Guests){requiredStar}
-                          </label>
-                          <input
-                            type="number"
-                            value={venue?.pax || ""}
-                            onChange={(e) =>
-                              handleVenueChange(index, "pax", e.target.value)
-                            }
-                            placeholder="Number of guests"
-                            className={inputClass}
-                          />
-                        </div>
-                        <div>
-                          <label className={requiredLabelClass}>
-                            Loading Dock Details{requiredStar}
-                          </label>
-                          <textarea
-                            value={venue?.loading_dock_notes || ""}
-                            onChange={(e) =>
-                              handleVenueChange(
-                                index,
-                                "loading_dock_notes",
-                                e.target.value,
-                              )
-                            }
-                            rows={2}
-                            placeholder="Dock height, ramp access"
-                            className={inputClass}
-                          />
-                        </div>
-                        <div>
-                          <label className={requiredLabelClass}>
-                            Safety Precautions{requiredStar}
-                          </label>
-                          <select
-                            value={venue?.safety_precautions || ""}
-                            onChange={(e) =>
-                              handleVenueChange(
-                                index,
-                                "safety_precautions",
-                                e.target.value,
-                              )
-                            }
-                            className={inputClass}
-                          >
-                            <option value="">Select</option>
-                            <option value="yes">Yes</option>
-                            <option value="no">No</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className={labelClass}>Parking Passes</label>
-                          <select
-                            value={venue?.parking_passes || ""}
-                            onChange={(e) =>
-                              handleVenueChange(
-                                index,
-                                "parking_passes",
-                                e.target.value,
-                              )
-                            }
-                            className={inputClass}
-                          >
-                            <option value="">Select Option</option>
-                            <option value="available">Available</option>
-                            <option value="not_available">Not Available</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className={requiredLabelClass}>
-                            Security Access{requiredStar}
-                          </label>
-                          <select
-                            value={venue?.security_access || ""}
-                            onChange={(e) =>
-                              handleVenueChange(
-                                index,
-                                "security_access",
-                                e.target.value,
-                              )
-                            }
-                            className={inputClass}
-                          >
-                            <option value="">Select Option</option>
-                            <option value="yes">Yes</option>
-                            <option value="no">No</option>
-                          </select>
-                        </div>
+                      <div>
+                        <label className={requiredLabelClass}>
+                          Hall Name{requiredStar}
+                        </label>
+                        <input
+                          type="text"
+                          value={venue?.hall_name || ""}
+                          onChange={(e) =>
+                            handleVenueChange(
+                              index,
+                              "hall_name",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Specific Room or Ballroom"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className={requiredLabelClass}>
+                          Venue Address{requiredStar}
+                        </label>
+                        <input
+                          type="text"
+                          value={venue?.venue_address || ""}
+                          onChange={(e) =>
+                            handleVenueChange(
+                              index,
+                              "venue_address",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Full physical address"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className={requiredLabelClass}>
+                          Pax (Number of Guests){requiredStar}
+                        </label>
+                        <input
+                          type="number"
+                          value={venue?.pax || ""}
+                          onChange={(e) =>
+                            handleVenueChange(index, "pax", e.target.value)
+                          }
+                          placeholder="Number of guests"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className={requiredLabelClass}>
+                          Loading Dock Details{requiredStar}
+                        </label>
+                        <textarea
+                          value={venue?.loading_dock_notes || ""}
+                          onChange={(e) =>
+                            handleVenueChange(
+                              index,
+                              "loading_dock_notes",
+                              e.target.value,
+                            )
+                          }
+                          rows={2}
+                          placeholder="Dock height, ramp access"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className={requiredLabelClass}>
+                          Safety Equipments{requiredStar}
+                        </label>
+                        <select
+                          value={venue?.safety_precautions || ""}
+                          onChange={(e) =>
+                            handleVenueChange(
+                              index,
+                              "safety_precautions",
+                              e.target.value,
+                            )
+                          }
+                          className={inputClass}
+                        >
+                          <option value="">Select</option>
+                          <option value="yes">Yes</option>
+                          <option value="no">No</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelClass}>Parking Passes</label>
+                        <select
+                          value={venue?.parking_passes || ""}
+                          onChange={(e) =>
+                            handleVenueChange(
+                              index,
+                              "parking_passes",
+                              e.target.value,
+                            )
+                          }
+                          className={inputClass}
+                        >
+                          <option value="">Select Option</option>
+                          <option value="available">Available</option>
+                          <option value="not_available">Not Available</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={requiredLabelClass}>
+                          ID/Pass needed{requiredStar}
+                        </label>
+                        <select
+                          value={venue?.security_access || ""}
+                          onChange={(e) =>
+                            handleVenueChange(
+                              index,
+                              "security_access",
+                              e.target.value,
+                            )
+                          }
+                          className={inputClass}
+                        >
+                          <option value="">Select Option</option>
+                          <option value="yes">Yes</option>
+                          <option value="no">No</option>
+                        </select>
                       </div>
                     </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleAddVenue}
-                    className="w-full"
-                  >
-                    + Add Another Venue
-                  </Button>
-                </div>
-              )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleAddVenue}
+                  className="w-full"
+                >
+                  + Add Another Venue
+                </Button>
+              </div>
             </div>
           </section>
 
@@ -1175,7 +1128,7 @@ function CreateEvent() {
           </div>
         </form>
       </div>
-    </div>
+    </div >
   );
 }
 
