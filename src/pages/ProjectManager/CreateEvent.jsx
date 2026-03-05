@@ -9,8 +9,12 @@ import {
   fetchProjectManagers,
   fetchEventTypes,
   fetchLastJobId,
+  fetchCategories,
+  fetchModelsByCategory,
   uploadEventAttachments,
+  assignEquipmentToEvent,
 } from "../../lib/supabase";
+import { supabase } from "../../lib/supabase";
 import { AuthContext } from "../../contexts/AuthContext";
 
 function CreateEvent() {
@@ -19,6 +23,17 @@ function CreateEvent() {
   const [projectManagers, setProjectManagers] = useState([]);
   const [eventTypes, setEventTypes] = useState([]);
   const [baseJobId, setBaseJobId] = useState(""); // Stores job_id with XX placeholder
+
+  // Equipment assignment state
+  const [categories, setCategories] = useState([]);
+  const [models, setModels] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedModel, setSelectedModel] = useState("");
+  const [selectedModelInfo, setSelectedModelInfo] = useState(null);
+  const [loadingAvailable, setLoadingAvailable] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [assignedEquipment, setAssignedEquipment] = useState([]);
+  const [equipmentError, setEquipmentError] = useState("");
 
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -184,13 +199,14 @@ function CreateEvent() {
     clearErrors,
   ]);
 
-  // Fetch project managers, event types and last job_id on component mount
+  // Fetch project managers, event types, last job_id, and categories on component mount
   useEffect(() => {
     async function loadData() {
-      const [pmResult, etResult, lastJobIdResult] = await Promise.all([
+      const [pmResult, etResult, lastJobIdResult, catResult] = await Promise.all([
         fetchProjectManagers(),
         fetchEventTypes(),
         fetchLastJobId(),
+        fetchCategories(),
       ]);
 
       if (pmResult.success) {
@@ -198,6 +214,9 @@ function CreateEvent() {
       }
       if (etResult.success) {
         setEventTypes(etResult.eventTypes);
+      }
+      if (catResult.success) {
+        setCategories(catResult.categories);
       }
 
       // Generate auto job_id
@@ -231,6 +250,87 @@ function CreateEvent() {
     }
     loadData();
   }, []);
+
+  // Handle category selection for equipment
+  const handleEquipmentCategoryChange = async (categoryId) => {
+    setSelectedCategory(categoryId);
+    setSelectedModel("");
+    setModels([]);
+    setQuantity(1);
+
+    if (categoryId) {
+      const result = await fetchModelsByCategory(parseInt(categoryId));
+      if (result.success) {
+        setModels(result.models);
+      }
+    }
+  };
+
+  // Handle model selection
+  const handleModelChange = async (modelId) => {
+    setSelectedModel(modelId);
+
+    // Fetch latest available count for this model
+    if (modelId) {
+      setLoadingAvailable(true);
+      try {
+        const { count, error } = await supabase
+          .from("assets")
+          .select("id", { count: 'exact', head: true })
+          .eq("models_id", modelId)
+          .eq("status", "available")
+          .eq("condition", "good");
+
+        if (!error) {
+          setSelectedModelInfo({ available_count: count || 0 });
+        }
+      } catch (err) {
+        console.error("Error fetching available count:", err);
+      }
+      setLoadingAvailable(false);
+    } else {
+      setSelectedModelInfo(null);
+    }
+  };
+
+  // Add equipment to assigned list
+  const handleAddEquipment = () => {
+    setEquipmentError("");
+
+    if (!selectedCategory || !selectedModel) {
+      setEquipmentError("Please select both category and model");
+      return;
+    }
+
+    if (quantity < 1) {
+      setEquipmentError("Quantity must be at least 1");
+      return;
+    }
+
+    const selectedModelData = models.find(m => m.id === parseInt(selectedModel));
+    const selectedCategoryData = categories.find(c => c.id === parseInt(selectedCategory));
+
+    const newEquipment = {
+      id: Date.now(), // Temporary ID for UI
+      category_id: selectedCategory,
+      category_name: selectedCategoryData?.name || "",
+      model_id: selectedModel,
+      model_name: selectedModelData ? `${selectedModelData.brand} - ${selectedModelData.name}` : "",
+      quantity: quantity
+    };
+
+    setAssignedEquipment([...assignedEquipment, newEquipment]);
+    setSelectedCategory("");
+    setSelectedModel("");
+    setSelectedModelInfo(null);
+    setQuantity(1);
+    setModels([]);
+  };
+
+  // Remove equipment from assigned list
+  const handleRemoveEquipment = (id) => {
+    setAssignedEquipment(assignedEquipment.filter(e => e.id !== id));
+  };
 
   const onSubmit = async (data) => {
     setLoading(true);
@@ -302,6 +402,23 @@ function CreateEvent() {
             ". Event was created but attachments failed to upload.",
           );
           return;
+        }
+
+        // Assign equipment to event
+        if (assignedEquipment.length > 0) {
+          const equipmentData = assignedEquipment.map(eq => ({
+            model_id: eq.model_id,
+            quantity: eq.quantity
+          }));
+
+          const equipmentResult = await assignEquipmentToEvent(eventId, equipmentData);
+
+          if (!equipmentResult.success || equipmentResult.results.failed.length > 0) {
+            setFormMessage(
+              "Event created but some equipment could not be assigned. Please check availability."
+            );
+            return;
+          }
         }
 
         window.history.back();
@@ -1094,6 +1211,117 @@ function CreateEvent() {
                 </p>
               </div>
             </div>
+          </section>
+
+          {/* SECTION 6: Equipment Assignment */}
+          <section>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Equipment Assignment
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Select equipment to assign to this event from available inventory
+            </p>
+
+            {/* Add Equipment Form */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <div>
+                <label className={labelClass}>Category</label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => handleEquipmentCategoryChange(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Select Category</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name} ({cat.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Model</label>
+                <select
+                  value={selectedModel}
+                  onChange={(e) => handleModelChange(e.target.value)}
+                  disabled={!selectedCategory}
+                  className={inputClass}
+                >
+                  <option value="">Select Model</option>
+                  {models.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.brand} - {model.name}
+                    </option>
+                  ))}
+                </select>
+                {selectedModel && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    {loadingAvailable ? 'Loading...' : `Available: ${selectedModelInfo?.available_count ?? 0} units`}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className={labelClass}>Quantity</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                  className={inputClass}
+                />
+              </div>
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={handleAddEquipment}
+                  className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                >
+                  Add Equipment
+                </button>
+              </div>
+            </div>
+
+            {equipmentError && (
+              <p className="text-sm text-red-600 mb-4">{equipmentError}</p>
+            )}
+
+            {/* Assigned Equipment List */}
+            {assignedEquipment.length > 0 && (
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-medium text-gray-600">Category</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-600">Model</th>
+                      <th className="px-4 py-2 text-right font-medium text-gray-600">Quantity</th>
+                      <th className="px-4 py-2 text-center font-medium text-gray-600">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {assignedEquipment.map((eq) => (
+                      <tr key={eq.id}>
+                        <td className="px-4 py-2">{eq.category_name}</td>
+                        <td className="px-4 py-2">{eq.model_name}</td>
+                        <td className="px-4 py-2 text-right">{eq.quantity}</td>
+                        <td className="px-4 py-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveEquipment(eq.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {assignedEquipment.length === 0 && (
+              <p className="text-sm text-gray-400 italic">No equipment assigned yet</p>
+            )}
           </section>
 
           {/* Status Message - Above Buttons */}

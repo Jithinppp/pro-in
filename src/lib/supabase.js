@@ -673,10 +673,11 @@ export async function fetchCategories() {
   }
 }
 
-// Fetch models by category ID
+// Fetch models by category ID with available count
 export async function fetchModelsByCategory(categoryId) {
   try {
-    const { data, error } = await supabase
+    // First get all models
+    const { data: models, error } = await supabase
       .from("models")
       .select("*")
       .eq("category_id", categoryId)
@@ -687,7 +688,33 @@ export async function fetchModelsByCategory(categoryId) {
       return { success: false, error: error.message, models: [] };
     }
 
-    return { success: true, models: data || [] };
+    // Get available counts for each model
+    if (models && models.length > 0) {
+      const modelIds = models.map(m => m.id);
+
+      const { data: assetCounts, error: countError } = await supabase
+        .from("assets")
+        .select("models_id, count")
+        .in("models_id", modelIds)
+        .eq("status", "available")
+        .eq("condition", "good");
+
+      if (!countError && assetCounts) {
+        // Group by models_id and count
+        const countsByModel = {};
+        assetCounts.forEach(a => {
+          countsByModel[a.models_id] = (countsByModel[a.models_id] || 0) + 1;
+        });
+
+        // Add available_count to each model
+        models = models.map(m => ({
+          ...m,
+          available_count: countsByModel[m.id] || 0
+        }));
+      }
+    }
+
+    return { success: true, models: models || [] };
   } catch (err) {
     console.error("Unexpected error fetching models:", err);
     return { success: false, error: err.message, models: [] };
@@ -1052,6 +1079,79 @@ export async function deleteAsset(assetId) {
     return { success: true };
   } catch (err) {
     console.error("Unexpected error deleting asset:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+// Assign equipment to event (quantity-based)
+export async function assignEquipmentToEvent(eventId, equipmentList) {
+  try {
+    const results = {
+      success: [],
+      failed: []
+    };
+
+    for (const equipment of equipmentList) {
+      // Fetch available assets for this model
+      const { data: availableAssets, error: fetchError } = await supabase
+        .from("assets")
+        .select("id")
+        .eq("models_id", equipment.model_id)
+        .eq("status", "available")
+        .eq("condition", "good")
+        .limit(equipment.quantity);
+
+      if (fetchError) {
+        console.error("Error fetching available assets:", fetchError);
+        results.failed.push({
+          model_id: equipment.model_id,
+          quantity_needed: equipment.quantity,
+          error: fetchError.message
+        });
+        continue;
+      }
+
+      if (!availableAssets || availableAssets.length < equipment.quantity) {
+        results.failed.push({
+          model_id: equipment.model_id,
+          quantity_needed: equipment.quantity,
+          quantity_available: availableAssets?.length || 0,
+          error: "Not enough available equipment"
+        });
+        continue;
+      }
+
+      // Update asset status to assigned
+      const assetIds = availableAssets.map(a => a.id);
+      const { error: updateError } = await supabase
+        .from("assets")
+        .update({
+          status: "assigned",
+          // You might want to add an event_id field to track which event
+        })
+        .in("id", assetIds);
+
+      if (updateError) {
+        console.error("Error updating asset status:", updateError);
+        results.failed.push({
+          model_id: equipment.model_id,
+          quantity_assigned: assetIds.length,
+          error: updateError.message
+        });
+      } else {
+        results.success.push({
+          model_id: equipment.model_id,
+          quantity_assigned: assetIds.length
+        });
+      }
+    }
+
+    return {
+      success: results.success.length > 0,
+      results
+    };
+  } catch (err) {
+    console.error("Unexpected error assigning equipment:", err);
     return { success: false, error: err.message };
   }
 }
