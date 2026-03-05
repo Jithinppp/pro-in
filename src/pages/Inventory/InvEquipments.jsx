@@ -127,6 +127,12 @@ function InvEquipments() {
                   Serial Number
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Condition
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Supplier
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -180,6 +186,16 @@ function InvEquipments() {
                     <td className="px-4 py-3">
                       <span className="text-sm text-gray-600">
                         {asset.serial_number || "-"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${asset.condition === "good" ? "bg-green-50 text-green-700" : asset.condition === "damaged" ? "bg-red-50 text-red-700" : asset.condition === "under_repair" ? "bg-yellow-50 text-yellow-700" : "bg-gray-50 text-gray-700"}`}>
+                        {asset.condition === "good" ? "Good" : asset.condition === "damaged" ? "Damaged" : asset.condition === "under_repair" ? "Under Repair" : "-"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${asset.status === "available" ? "bg-green-50 text-green-700" : asset.status === "assigned" ? "bg-blue-50 text-blue-700" : "bg-gray-50 text-gray-700"}`}>
+                        {asset.status === "available" ? "Available" : asset.status === "assigned" ? "Assigned" : "-"}
                       </span>
                     </td>
                     <td className="px-4 py-3">

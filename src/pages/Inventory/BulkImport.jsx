@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { fetchCategories, fetchModelsByCategory, createBulkAssets } from "../../lib/supabase";
 
@@ -13,6 +13,7 @@ function BulkImport() {
     const [importResult, setImportResult] = useState(null);
     const [selectedCategoryId, setSelectedCategoryId] = useState("");
     const [selectedModelId, setSelectedModelId] = useState("");
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         loadCategories();
@@ -114,11 +115,24 @@ function BulkImport() {
 
         if (result.success) {
             setImportProgress(100);
+            // Reset form after successful import
+            setCsvData([]);
+            setSelectedCategoryId("");
+            setSelectedModelId("");
+            setModels([]);
+            setImportResult(null);
+            setImportProgress(0);
+            // Reset file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
         }
     };
 
     const downloadTemplate = () => {
-        const template = "serial_number,supplier_name,invoice_number,purchase_date,purchase_price,description\nSN001,SupplierName,INV001,2024-01-01,100.00,Description here\nSN002,SupplierName,INV002,2024-01-02,150.00,Another description";
+        const template = `serial_number,supplier_name,invoice_number,purchase_date,purchase_price,condition,status,description
+SN001,SupplierName,INV001,2024-01-13,100.00,good,available,Description here
+SN002,SupplierName,INV002,2024-01-15,150.00,damaged,available,Another description`;
         const blob = new Blob([template], { type: "text/csv" });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -151,7 +165,7 @@ function BulkImport() {
                             Download CSV Template
                         </p>
                         <p className="text-xs text-blue-700 mt-1">
-                            Required column: serial_number
+                            Required column: serial_number | Date format: YYYY-MM-DD (e.g., 2024-01-13)
                         </p>
                     </div>
                     <button
@@ -209,6 +223,7 @@ function BulkImport() {
                     </label>
                     <input
                         type="file"
+                        ref={fileInputRef}
                         accept=".csv"
                         onChange={handleFileUpload}
                         className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"

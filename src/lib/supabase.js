@@ -88,7 +88,8 @@ export async function fetchEventById(eventId) {
       .from("events")
       .select("*")
       .eq("id", eventId)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching event:", error);
@@ -240,7 +241,8 @@ export async function createEventType(name, description) {
       .from("event_types")
       .insert([{ name, description }])
       .select()
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
       console.error("Error creating event type:", error);
@@ -337,11 +339,16 @@ export async function createEvent(eventData, userId) {
         created_by: userId,
       })
       .select()
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (eventError) {
       console.error("Error creating event:", eventError);
       return { success: false, error: eventError.message };
+    }
+
+    if (!event) {
+      return { success: false, error: "Failed to create event" };
     }
 
     const eventId = event.id;
@@ -469,7 +476,8 @@ export async function updateEvent(eventId, eventData, userId) {
       })
       .eq("id", eventId)
       .select()
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (eventError) {
       console.error("Error updating event:", eventError);
@@ -818,11 +826,16 @@ export async function fetchAssetById(assetId) {
         "*, models(id, name, brand, brand_code, categories(id, name, code))",
       )
       .eq("id", assetId)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching asset:", error);
       return { success: false, error: error.message, asset: null };
+    }
+
+    if (!data) {
+      return { success: false, error: "Asset not found", asset: null };
     }
 
     return { success: true, asset: data };
@@ -842,7 +855,8 @@ export async function createAsset(assetData) {
       .from("models")
       .select("*, categories(code)")
       .eq("id", assetData.models_id)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (modelError || !modelData) {
       console.error("Error fetching model:", modelError);
@@ -877,15 +891,22 @@ export async function createAsset(assetData) {
           invoice_number: assetData.invoice_number || null,
           purchase_date: assetData.purchase_date || null,
           purchase_price: assetData.purchase_price || null,
+          condition: assetData.condition || "good",
+          status: assetData.status || "available",
           description: assetData.description || null,
         },
       ])
       .select()
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
       console.error("Error creating asset:", error);
       return { success: false, error: error.message };
+    }
+
+    if (!data) {
+      return { success: false, error: "Failed to create asset" };
     }
 
     return { success: true, asset: data };
@@ -908,7 +929,8 @@ export async function createBulkAssets(csvData, categoryId, modelId, onProgress)
       .from("models")
       .select("*, categories(code)")
       .eq("id", modelId)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (modelError || !modelData) {
       console.error("Error fetching model:", modelError);
@@ -949,6 +971,8 @@ export async function createBulkAssets(csvData, categoryId, modelId, onProgress)
           invoice_number: row.invoice_number || null,
           purchase_date: row.purchase_date || null,
           purchase_price: row.purchase_price ? parseFloat(row.purchase_price) : null,
+          condition: row.condition || "good",
+          status: row.status || "available",
           description: row.description || null,
         };
       });
@@ -994,11 +1018,14 @@ export async function updateAsset(assetId, assetData) {
         invoice_number: assetData.invoice_number || null,
         purchase_date: assetData.purchase_date || null,
         purchase_price: assetData.purchase_price || null,
+        condition: assetData.condition || null,
+        status: assetData.status || null,
         description: assetData.description || null,
       })
       .eq("id", assetId)
       .select()
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
       console.error("Error updating asset:", error);

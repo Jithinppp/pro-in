@@ -96,33 +96,16 @@ function EquipmentDetail() {
     if (!amount) return "-";
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      USD: "USD",
+      currency: "AED"
     }).format(amount);
   };
+  console.log(asset.purchase_price)
 
   return (
     <div className="p-4 md:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
-          <Link
-            to="/inv/equipments"
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <svg
-              className="w-5 h-5 text-gray-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          </Link>
           <div>
             <h1 className="text-xl font-semibold text-gray-900">
               {asset.asset_code}
@@ -271,22 +254,38 @@ function EquipmentDetail() {
 
         {/* Right Column - Meta Information */}
         <div className="space-y-6">
+          {/* Condition */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Condition</h2>
+            <div className="flex items-center gap-2">
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium ${asset.condition === "good"
+                  ? "bg-green-50 text-green-700"
+                  : asset.condition === "damaged"
+                    ? "bg-red-50 text-red-700"
+                    : asset.condition === "under_repair"
+                      ? "bg-yellow-50 text-yellow-700"
+                      : "bg-gray-50 text-gray-700"
+                  }`}
+              >
+                {asset.condition === "good" ? "Good" : asset.condition === "damaged" ? "Damaged" : asset.condition === "under_repair" ? "Under Repair" : asset.condition || "Good"}
+              </span>
+            </div>
+          </div>
+
           {/* Status */}
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Status</h2>
             <div className="flex items-center gap-2">
               <span
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  asset.status === "available"
-                    ? "bg-green-50 text-green-700"
-                    : asset.status === "assigned"
-                      ? "bg-blue-50 text-blue-700"
-                      : asset.status === "maintenance"
-                        ? "bg-yellow-50 text-yellow-700"
-                        : "bg-gray-50 text-gray-700"
-                }`}
+                className={`px-3 py-1 rounded-full text-sm font-medium ${asset.status === "available"
+                  ? "bg-green-50 text-green-700"
+                  : asset.status === "assigned"
+                    ? "bg-blue-50 text-blue-700"
+                    : "bg-gray-50 text-gray-700"
+                  }`}
               >
-                {asset.status || "available"}
+                {asset.status === "available" ? "Available" : asset.status === "assigned" ? "Assigned" : asset.status || "Available"}
               </span>
             </div>
           </div>
