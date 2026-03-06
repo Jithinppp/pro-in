@@ -126,21 +126,29 @@ function AddInventory() {
     setIsSubmitting(true);
     setSubmitError("");
 
-    if (!data.category_id || !data.models_id) {
+    // Additional validation check
+    if (!data.category_id || data.category_id === "") {
+      setSubmitError("Please select a category");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!data.models_id || data.models_id === "") {
+      setSubmitError("Please select a model");
       setIsSubmitting(false);
       return;
     }
 
     const assetData = {
       models_id: parseInt(data.models_id),
-      serial_number: data.serial_number || null,
-      supplier_name: data.supplier_name || null,
-      invoice_number: data.invoice_number || null,
+      serial_number: data.serial_number?.trim() || null,
+      supplier_name: data.supplier_name?.trim() || null,
+      invoice_number: data.invoice_number?.trim() || null,
       purchase_date: data.purchase_date
         ? format(data.purchase_date, "yyyy-MM-dd")
         : null,
-      purchase_price: data.purchase_price || null,
-      description: data.description || null,
+      purchase_price: data.purchase_price ? parseFloat(data.purchase_price) : null,
+      description: data.description?.trim() || null,
     };
 
     console.log("Asset data to create:", assetData);
@@ -206,7 +214,7 @@ function AddInventory() {
               {...register("category_id", { required: "Category is required" })}
               onChange={(e) => handleCategoryChange(e.target.value)}
               disabled={categoriesLoading}
-              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm disabled:opacity-50"
+              className={`w-full px-3 py-2.5 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm disabled:opacity-50 ${errors.category_id ? "border-red-500" : "border-gray-200"}`}
             >
               <option value="">
                 {categoriesLoading ? "Loading..." : "Select Category"}
@@ -241,7 +249,7 @@ function AddInventory() {
               {...register("models_id", { required: "Model is required" })}
               onChange={(e) => handleModelChange(e.target.value)}
               disabled={!selectedCategoryId}
-              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`w-full px-3 py-2.5 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm disabled:opacity-50 disabled:cursor-not-allowed ${errors.models_id ? "border-red-500" : "border-gray-200"}`}
             >
               <option value="">Select Model</option>
               {models.map((model) => (
@@ -358,11 +366,12 @@ function AddInventory() {
               <input
                 type="number"
                 step="0.01"
+                min="0"
                 {...register("purchase_price", {
                   validate: (value) =>
-                    !value || value >= 0 || "Price must be positive",
+                    !value || parseFloat(value) >= 0 || "Price must be positive",
                 })}
-                className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className={`w-full px-3 py-2.5 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${errors.purchase_price ? "border-red-500" : "border-gray-200"}`}
                 placeholder="Enter purchase price"
               />
               {errors.purchase_price && (

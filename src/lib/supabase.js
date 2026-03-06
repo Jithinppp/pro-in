@@ -781,8 +781,8 @@ export async function getAssetSequence(categoryCode, brandCode) {
   }
 }
 
-// Fetch assets with pagination and search
-export async function fetchAssets(page = 1, limit = 20, searchQuery = "") {
+// Fetch assets with pagination and search (excludes deleted items by default)
+export async function fetchAssets(page = 1, limit = 20, searchQuery = "", includeDeleted = false) {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
@@ -796,9 +796,13 @@ export async function fetchAssets(page = 1, limit = 20, searchQuery = "") {
       .order("created_at", { ascending: false })
       .range(from, to);
 
+    // Filter out deleted items unless explicitly requested
+    if (!includeDeleted) {
+      query = query.eq("is_deleted", false);
+    }
+
     if (searchQuery) {
       // Fetch more results for client-side filtering on related fields
-      // (PostgREST doesn't easily support .or() on foreign table columns)
       query = query.range(0, 99); // Fetch up to 100 items for client-side search
     }
 
@@ -812,16 +816,13 @@ export async function fetchAssets(page = 1, limit = 20, searchQuery = "") {
     let filteredData = data || [];
 
     // Client-side filtering for model/brand/category fields
-    // (PostgREST doesn't easily support .or() on foreign table columns)
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filteredData = filteredData.filter((asset) => {
         const modelName = asset.models?.name?.toLowerCase() || "";
         const modelBrand = asset.models?.brand?.toLowerCase() || "";
-        const categoryName =
-          asset.models?.categories?.name?.toLowerCase() || "";
-        const categoryCode =
-          asset.models?.categories?.code?.toLowerCase() || "";
+        const categoryName = asset.models?.categories?.name?.toLowerCase() || "";
+        const categoryCode = asset.models?.categories?.code?.toLowerCase() || "";
 
         return (
           modelName.includes(query) ||
@@ -1066,10 +1067,16 @@ export async function updateAsset(assetId, assetData) {
   }
 }
 
-// Delete asset
+// Soft delete asset (mark as deleted instead of permanent delete)
 export async function deleteAsset(assetId) {
   try {
-    const { error } = await supabase.from("assets").delete().eq("id", assetId);
+    const { error } = await supabase
+      .from("assets")
+      .update({
+        is_deleted: true,
+        deleted_at: new Date().toISOString()
+      })
+      .eq("id", assetId);
 
     if (error) {
       console.error("Error deleting asset:", error);
@@ -1080,6 +1087,86 @@ export async function deleteAsset(assetId) {
   } catch (err) {
     console.error("Unexpected error deleting asset:", err);
     return { success: false, error: err.message };
+  }
+}
+
+// Restore a soft-deleted asset
+export async function restoreAsset(assetId) {
+  try {
+    const { error } = await supabase
+      .from("assets")
+      .update({
+        is_deleted: false,
+        deleted_at: null
+      })
+      .eq("id", assetId);
+
+    if (error) {
+      console.error("Error restoring asset:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Unexpected error restoring asset:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+// Fetch only deleted assets
+export async function fetchDeletedAssets(page = 1, limit = 20, searchQuery = "") {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  try {
+    let query = supabase
+      .from("assets")
+      .select(
+        "*, models(id, name, brand, brand_code, categories(id, name, code))",
+        { count: "exact" },
+      )
+      .eq("is_deleted", true)
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (searchQuery) {
+      query = query.range(0, 99);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error("Error fetching deleted assets:", error);
+      return { success: false, error: error.message, assets: [], total: 0 };
+    }
+
+    let filteredData = data || [];
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filteredData = filteredData.filter((asset) => {
+        const modelName = asset.models?.name?.toLowerCase() || "";
+        const modelBrand = asset.models?.brand?.toLowerCase() || "";
+        const categoryName = asset.models?.categories?.name?.toLowerCase() || "";
+        const categoryCode = asset.models?.categories?.code?.toLowerCase() || "";
+
+        return (
+          modelName.includes(query) ||
+          modelBrand.includes(query) ||
+          categoryName.includes(query) ||
+          categoryCode.includes(query)
+        );
+      });
+
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      filteredData = filteredData.slice(from, to + 1);
+    }
+
+    return { success: true, assets: filteredData, total: count || 0 };
+  } catch (err) {
+    console.error("Unexpected error fetching deleted assets:", err);
+    return { success: false, error: err.message, assets: [], total: 0 };
   }
 }
 

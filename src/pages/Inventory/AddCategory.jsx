@@ -53,8 +53,11 @@ function AddCategory() {
             </label>
             <input
               type="text"
-              {...register("name", { required: "Name is required" })}
-              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              {...register("name", {
+                required: "Name is required",
+                maxLength: { value: 100, message: "Name must be less than 100 characters" }
+              })}
+              className={`w-full px-3 py-2.5 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${errors.name ? "border-red-500" : "border-gray-200"}`}
               placeholder="e.g., Control Unit"
             />
             {errors.name && (
@@ -68,8 +71,15 @@ function AddCategory() {
             </label>
             <input
               type="text"
-              {...register("code", { required: "Code is required" })}
-              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              {...register("code", {
+                required: "Code is required",
+                maxLength: { value: 10, message: "Code must be less than 10 characters" },
+                pattern: {
+                  value: /^[A-Za-z0-9]+$/,
+                  message: "Only letters and numbers allowed"
+                }
+              })}
+              className={`w-full px-3 py-2.5 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${errors.code ? "border-red-500" : "border-gray-200"}`}
               placeholder="e.g., CCU"
             />
             {errors.code && (

@@ -66,7 +66,7 @@ function AddModel() {
             </label>
             <select
               {...register("category_id", { required: "Category is required" })}
-              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className={`w-full px-3 py-2.5 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${errors.category_id ? "border-red-500" : "border-gray-200"}`}
             >
               <option value="">Select Category</option>
               {categories.map((cat) => (
@@ -88,8 +88,11 @@ function AddModel() {
             </label>
             <input
               type="text"
-              {...register("brand", { required: "Brand is required" })}
-              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              {...register("brand", {
+                required: "Brand is required",
+                maxLength: { value: 50, message: "Brand must be less than 50 characters" }
+              })}
+              className={`w-full px-3 py-2.5 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${errors.brand ? "border-red-500" : "border-gray-200"}`}
               placeholder="e.g., BOSCH"
             />
             {errors.brand && (
@@ -105,8 +108,11 @@ function AddModel() {
             </label>
             <input
               type="text"
-              {...register("name", { required: "Model name is required" })}
-              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              {...register("name", {
+                required: "Model name is required",
+                maxLength: { value: 100, message: "Model name must be less than 100 characters" }
+              })}
+              className={`w-full px-3 py-2.5 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${errors.name ? "border-red-500" : "border-gray-200"}`}
               placeholder="e.g., DCN CCU 2"
             />
             {errors.name && (
@@ -122,8 +128,13 @@ function AddModel() {
               type="text"
               {...register("brand_code", {
                 required: "Brand code is required",
+                maxLength: { value: 10, message: "Brand code must be less than 10 characters" },
+                pattern: {
+                  value: /^[A-Za-z0-9]+$/,
+                  message: "Only letters and numbers allowed"
+                }
               })}
-              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className={`w-full px-3 py-2.5 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${errors.brand_code ? "border-red-500" : "border-gray-200"}`}
               placeholder="e.g., BSH"
             />
             {errors.brand_code && (

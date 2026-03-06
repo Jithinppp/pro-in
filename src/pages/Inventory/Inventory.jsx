@@ -21,7 +21,7 @@ function Inventory() {
       }
 
       // Load recent assets
-      const assetsResult = await fetchAssets(1, 5, "");
+      const assetsResult = await fetchAssets(1, 5, "", false);
       if (assetsResult.success) {
         setRecentItems(assetsResult.assets);
       }
@@ -35,7 +35,7 @@ function Inventory() {
     setSearchQuery(query);
     setLoading(true);
 
-    const assetsResult = await fetchAssets(1, 5, query);
+    const assetsResult = await fetchAssets(1, 5, query, false);
     if (assetsResult.success) {
       setRecentItems(assetsResult.assets);
     }
